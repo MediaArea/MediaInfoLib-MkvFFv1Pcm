@@ -1552,11 +1552,6 @@ void File__Analyze::Video_BitRate_Rounding(size_t Pos, video Parameter)
     const Ztring& Format=Retrieve(Stream_Video, Pos, Video_Format);
     int32u BitRate=Retrieve(Stream_Video, Pos, Parameter).To_int32u();
     int32u BitRate_Sav=BitRate;
-    if (Format==__T("AVC"))
-    {
-        if (BitRate>= 54942720 && BitRate<= 57185280) BitRate= 56064000; //AVC-INTRA50
-        if (BitRate>=111390720 && BitRate<=115937280) BitRate=113664000; //AVC-INTRA100
-    }
 
     if (BitRate!=BitRate_Sav)
         Fill(Stream_Video, Pos, Parameter, BitRate, 0, true);
@@ -1965,7 +1960,7 @@ void File__Analyze::Duration_Duration123(stream_t StreamKind, size_t StreamPos, 
                 // Testing time code track
                 if (!DropFrame_IsValid)
                 {
-                    for (size_t Step=Retrieve(Stream_General, 0, General_Format)==__T("MXF")?0:1; Step<2; ++Step)
+                    for (size_t Step=1; Step<2; ++Step)
                     {
                         for (size_t TC_Pos=0; TC_Pos<Count_Get(Stream_Other); ++TC_Pos)
                             if (Retrieve(Stream_Other, TC_Pos, Other_Type)==__T("Time code")

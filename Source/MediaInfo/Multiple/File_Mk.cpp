@@ -22,65 +22,8 @@
 
 //---------------------------------------------------------------------------
 #include "MediaInfo/Multiple/File_Mk.h"
-#if defined(MEDIAINFO_OGG_YES)
-    #include "MediaInfo/Multiple/File_Ogg.h"
-#endif
-#if defined(MEDIAINFO_RM_YES)
-    #include "MediaInfo/Multiple/File_Rm.h"
-#endif
-#if defined(MEDIAINFO_MPEG4V_YES)
-    #include "MediaInfo/Video/File_Mpeg4v.h"
-#endif
-#if defined(MEDIAINFO_AVC_YES)
-    #include "MediaInfo/Video/File_Avc.h"
-#endif
-#if defined(MEDIAINFO_HEVC_YES)
-    #include "MediaInfo/Video/File_Hevc.h"
-#endif
 #if defined(MEDIAINFO_FFV1_YES)
     #include "MediaInfo/Video/File_Ffv1.h"
-#endif
-#if defined(MEDIAINFO_HUFFYUV_YES)
-    #include "MediaInfo/Video/File_HuffYuv.h"
-#endif
-#if defined(MEDIAINFO_VC1_YES)
-    #include "MediaInfo/Video/File_Vc1.h"
-#endif
-#if defined(MEDIAINFO_DIRAC_YES)
-    #include "MediaInfo/Video/File_Dirac.h"
-#endif
-#if defined(MEDIAINFO_MPEGV_YES)
-    #include "MediaInfo/Video/File_Mpegv.h"
-#endif
-#if defined(MEDIAINFO_PRORES_YES)
-    #include "MediaInfo/Video/File_ProRes.h"
-#endif
-#if defined(MEDIAINFO_VP8_YES)
-    #include "MediaInfo/Video/File_Vp8.h"
-#endif
-#if defined(MEDIAINFO_AAC_YES)
-    #include "MediaInfo/Audio/File_Aac.h"
-#endif
-#if defined(MEDIAINFO_AC3_YES)
-    #include "MediaInfo/Audio/File_Ac3.h"
-#endif
-#if defined(MEDIAINFO_DTS_YES)
-    #include "MediaInfo/Audio/File_Dts.h"
-#endif
-#if defined(MEDIAINFO_MPEGA_YES)
-    #include "MediaInfo/Audio/File_Mpega.h"
-#endif
-#if defined(MEDIAINFO_FLAC_YES)
-    #include "MediaInfo/Audio/File_Flac.h"
-#endif
-#if defined(MEDIAINFO_OPUS_YES)
-    #include "MediaInfo/Audio/File_Opus.h"
-#endif
-#if defined(MEDIAINFO_WVPK_YES)
-    #include "MediaInfo/Audio/File_Wvpk.h"
-#endif
-#if defined(MEDIAINFO_TTA_YES)
-    #include "MediaInfo/Audio/File_Tta.h"
 #endif
 #if defined(MEDIAINFO_PCM_YES)
     #include "MediaInfo/Audio/File_Pcm.h"
@@ -92,7 +35,6 @@
 #include <cstring>
 #include <cmath>
 #include <algorithm>
-#include "base64.h"
 //---------------------------------------------------------------------------
 
 namespace MediaInfoLib
@@ -395,6 +337,77 @@ static void Matroska_CRC32_Compute(int32u &CRC32, int32u Init, const int8u* Buff
     Matroska_CRC32_Compute(CRC32, Buffer_Current, Buffer_End);
 
     CRC32 ^= Init;
+}
+
+//---------------------------------------------------------------------------
+std::string ExtensibleWave_ChannelMask (int32u ChannelMask)
+{
+    std::string Text;
+    if ((ChannelMask&0x0007)!=0x0000)
+        Text+="Front:";
+    if (ChannelMask&0x0001)
+        Text+=" L";
+    if (ChannelMask&0x0004)
+        Text+=" C";
+    if (ChannelMask&0x0002)
+        Text+=" R";
+
+    if ((ChannelMask&0x0600)!=0x0000)
+        Text+=", Side:";
+    if (ChannelMask&0x0200)
+        Text+=" L";
+    if (ChannelMask&0x0400)
+        Text+=" R";
+
+    if ((ChannelMask&0x0130)!=0x0000)
+        Text+=", Back:";
+    if (ChannelMask&0x0010)
+        Text+=" L";
+    if (ChannelMask&0x0100)
+        Text+=" C";
+    if (ChannelMask&0x0020)
+        Text+=" R";
+
+    if ((ChannelMask&0x0008)!=0x0000)
+        Text+=", LFE";
+
+    return Text;
+}
+
+//---------------------------------------------------------------------------
+std::string ExtensibleWave_ChannelMask2 (int32u ChannelMask)
+{
+    std::string Text;
+    int8u Count=0;
+    if (ChannelMask&0x0001)
+        Count++;
+    if (ChannelMask&0x0004)
+        Count++;
+    if (ChannelMask&0x0002)
+        Count++;
+    Text+=Ztring::ToZtring(Count).To_UTF8();
+    Count=0;
+
+    if (ChannelMask&0x0200)
+        Count++;
+    if (ChannelMask&0x0400)
+        Count++;
+    Text+="/"+Ztring::ToZtring(Count).To_UTF8();
+    Count=0;
+
+    if (ChannelMask&0x0010)
+        Count++;
+    if (ChannelMask&0x0100)
+        Count++;
+    if (ChannelMask&0x0020)
+        Count++;
+    Text+="/"+Ztring::ToZtring(Count).To_UTF8();
+    Count=0;
+
+    if (ChannelMask&0x0008)
+        Text+=".1";
+
+    return Text;
 }
 
 //---------------------------------------------------------------------------
@@ -1008,25 +1021,6 @@ void File_Mk::Streams_Finish()
             //if (!Duration_Temp.empty()) Fill(StreamKind_Last, StreamPos_Last, Fill_Parameter(StreamKind_Last, Generic_Duration), Duration_Temp, true);
             if (Temp->second.StreamKind==Stream_Video && !Codec_Temp.empty())
                 Fill(StreamKind_Last, StreamPos_Last, Fill_Parameter(StreamKind_Last, Generic_Codec), Codec_Temp, true);
-
-            //Special case: AAC
-            if (StreamKind_Last==Stream_Audio
-             && (Retrieve(Stream_Audio, StreamPos_Last, Audio_Format)==__T("AAC")
-              || Retrieve(Stream_Audio, StreamPos_Last, Audio_Format)==__T("MPEG Audio")
-              || Retrieve(Stream_Audio, StreamPos_Last, Audio_Format)==__T("Vorbis")))
-                Clear(Stream_Audio, StreamPos_Last, Audio_BitDepth); //Resolution is not valid for AAC / MPEG Audio / Vorbis
-
-            //Special case: 5.1
-            if (StreamKind_Last==Stream_Audio
-             && (Retrieve(Stream_Audio, StreamPos_Last, Audio_Format)==__T("AC-3")
-              || Retrieve(Stream_Audio, StreamPos_Last, Audio_Format)==__T("E-AC-3")
-              || Retrieve(Stream_Audio, StreamPos_Last, Audio_Format)==__T("DTS"))
-             && Retrieve(Stream_Audio, StreamPos_Last, Audio_Channel_s__Original)==__T("6")
-             && Retrieve(Stream_Audio, StreamPos_Last, Audio_Channel_s_)==__T("5"))
-            {
-                Clear(Stream_Audio, StreamPos_Last, Audio_Channel_s__Original);
-                Fill(Stream_Audio, StreamPos_Last, Audio_Channel_s_, 6, 10, true); //Some muxers do not count LFE in the channel count, let's say it is normal
-            }
 
             //VFR
             if (Retrieve(Stream_Video, StreamPos_Last, Video_FrameRate_Mode)==__T("VFR") && Retrieve(Stream_Video, StreamPos_Last, Video_FrameRate_Original).empty())
@@ -1758,10 +1752,8 @@ void File_Mk::Segment_Attachments_AttachedFile_FileData()
 
         std::string Data_Raw;
         Peek_String(Element_TotalSize_Get(), Data_Raw);
-        std::string Data_Base64(Base64::encode(Data_Raw));
 
         //Filling
-        Fill(Stream_General, 0, General_Cover_Data, Data_Base64);
         Fill(Stream_General, 0, General_Cover, "Yes");
         CoverIsSetFromAttachment=true;
     }
@@ -2079,12 +2071,6 @@ void File_Mk::Segment_Cluster()
              || Temp->second.Searching_TimeStamp_Start
              || Temp->second.Searching_TimeStamps)
                 Stream_Count++;
-
-            //Specific cases
-            #ifdef MEDIAINFO_AAC_YES
-                if (Retrieve(Temp->second.StreamKind, Temp->second.StreamPos, Audio_CodecID).find(__T("A_AAC/"))==0)
-                    ((File_Aac*)Stream[Temp->first].Parser)->Mode=File_Aac::Mode_raw_data_block; //In case AudioSpecificConfig is not present
-            #endif //MEDIAINFO_AAC_YES
 
             ++Temp;
         }
@@ -3092,10 +3078,6 @@ void File_Mk::Segment_Tracks_TrackEntry_Audio_SamplingFrequency()
         if (Segment_Info_Count>1)
             return; //First element has the priority
         Fill(Stream_Audio, StreamPos_Last, Audio_SamplingRate, Float, 0, true);
-        #ifdef MEDIAINFO_AAC_YES
-            if (Retrieve(Stream_Audio, StreamPos_Last, Audio_CodecID).find(__T("A_AAC/"))==0)
-                ((File_Aac*)Stream[TrackNumber].Parser)->AudioSpecificConfig_OutOfBand(float64_int64s(Float));
-        #endif //MEDIAINFO_AAC_YES
     FILLING_END();
 }
 
@@ -3257,10 +3239,6 @@ void File_Mk::Segment_Tracks_TrackEntry_CodecPrivate__Parse()
                         break;
             case 1 :    //In field
                         {
-                        std::string Data_Raw((const char*)(Buffer+Buffer_Offset), (size_t)Element_Size);
-                        std::string Data_Base64(Base64::encode(Data_Raw));
-                        Fill(StreamKind_Last, StreamPos_Last, "Demux_InitBytes", Data_Base64);
-                        (*Stream_More)[StreamKind_Last][StreamPos_Last](Ztring().From_Local("Demux_InitBytes"), Info_Options)=__T("N NT");
                         }
                         break;
             default :   ;
@@ -3460,14 +3438,6 @@ void File_Mk::Segment_Tracks_TrackEntry_CodecPrivate_vids()
             #if defined(MEDIAINFO_FFV1_YES)
                 if (Compression==0x46465631) //FFV1
                     Open_Buffer_OutOfBand(streamItem.Parser);
-            #endif
-            #if defined(MEDIAINFO_FFV1_YES)
-                if (Compression==0x46465648) //FFVH
-                {
-                    ((File_HuffYuv*)streamItem.Parser)->IsOutOfBandData=true; //TODO: implement ISOutOfBandData in a generic maner
-                    Open_Buffer_Continue(streamItem.Parser);
-                    Element_Offset=Element_Size;
-                }
             #endif
         }
         else
@@ -4282,53 +4252,8 @@ void File_Mk::CodecID_Manage()
     stream& streamItem = Stream[TrackNumber];
 
     //Creating the parser
-    #if defined(MEDIAINFO_MPEG4V_YES) || defined(MEDIAINFO_AVC_YES) || defined(MEDIAINFO_HEVC_YES) || defined(MEDIAINFO_VC1_YES) || defined(MEDIAINFO_DIRAC_YES) || defined(MEDIAINFO_MPEGV_YES) || defined(MEDIAINFO_VP8_YES) || defined(MEDIAINFO_OGG_YES) || defined(MEDIAINFO_DTS_YES)
-        const Ztring &Format=MediaInfoLib::Config.CodecID_Get(StreamKind_Last, InfoCodecID_Format_Type, CodecID, InfoCodecID_Format);
-    #endif
+    const Ztring &Format=MediaInfoLib::Config.CodecID_Get(StreamKind_Last, InfoCodecID_Format_Type, CodecID, InfoCodecID_Format);
         if (0);
-    #if defined(MEDIAINFO_MPEG4V_YES)
-    else if (Format==__T("MPEG-4 Visual"))
-    {
-        streamItem.Parser=new File_Mpeg4v;
-        ((File_Mpeg4v*)streamItem.Parser)->FrameIsAlwaysComplete=true;
-    }
-    #endif
-    #if defined(MEDIAINFO_AVC_YES)
-    else if (Format==__T("AVC"))
-    {
-        File_Avc* parser = new File_Avc;
-        streamItem.Parser= parser;
-        ((File_Avc*)streamItem.Parser)->FrameIsAlwaysComplete=true;
-        if (InfoCodecID_Format_Type==InfoCodecID_Format_Matroska)
-        {
-            parser->MustSynchronize=false;
-            parser->MustParse_SPS_PPS=true;
-            parser->SizedBlocks=true;
-        }
-    }
-    #endif
-    #if defined(MEDIAINFO_HEVC_YES)
-    else if (Format==__T("HEVC"))
-    {
-        File_Hevc* parser = new File_Hevc;
-        streamItem.Parser = parser;
-        parser->FrameIsAlwaysComplete=true;
-        if (InfoCodecID_Format_Type==InfoCodecID_Format_Matroska)
-        {
-            parser->MustSynchronize=false;
-            parser->MustParse_VPS_SPS_PPS=true;
-            parser->MustParse_VPS_SPS_PPS_FromMatroska=true;
-            parser->SizedBlocks=true;
-            #if MEDIAINFO_DEMUX
-                if (Config->Demux_Hevc_Transcode_Iso14496_15_to_AnnexB_Get())
-                {
-                    streamItem.Parser->Demux_Level=2; //Container
-                    streamItem.Parser->Demux_UnpacketizeContainer=true;
-                }
-            #endif //MEDIAINFO_DEMUX
-        }
-    }
-    #endif
     #if defined(MEDIAINFO_FFV1_YES)
     else if (Format==__T("FFV1"))
     {
@@ -4338,170 +4263,12 @@ void File_Mk::CodecID_Manage()
         parser->Height=Retrieve(Stream_Video, StreamPos_Last, Video_Height).To_int32u();
     }
     #endif
-    #if defined(MEDIAINFO_HUFFYUV_YES)
-    else if (Format==__T("HuffYUV"))
-    {
-        streamItem.Parser=new File_HuffYuv;
-    }
-    #endif
-    #if defined(MEDIAINFO_VC1_YES)
-    else if (Format==__T("VC-1"))
-    {
-        File_Vc1* parser = new File_Vc1;
-        streamItem.Parser= parser;
-        parser->FrameIsAlwaysComplete=true;
-    }
-    #endif
-    #if defined(MEDIAINFO_DIRAC_YES)
-    else if (Format==__T("Dirac"))
-    {
-        streamItem.Parser=new File_Dirac;
-    }
-    #endif
-    #if defined(MEDIAINFO_MPEGV_YES)
-    else if (Format==__T("MPEG Video"))
-    {
-        File_Mpegv* parser = new File_Mpegv;
-        streamItem.Parser = parser;
-        parser->FrameIsAlwaysComplete=true;
-    }
-    #endif
-    #if defined(MEDIAINFO_PRORES_YES)
-    else if (Format==__T("ProRes"))
-    {
-        streamItem.Parser=new File_ProRes;
-    }
-    #endif
-    #if defined(MEDIAINFO_VP8_YES)
-    else if (Format==__T("VP8"))
-    {
-        streamItem.Parser=new File_Vp8;
-    }
-    #endif
-    #if defined(MEDIAINFO_OGG_YES)
-    else if (Format==__T("Theora")  || Format==__T("Vorbis"))
-    {
-        File_Ogg* parser = new File_Ogg;
-        streamItem.Parser = parser;
-        streamItem.Parser->MustSynchronize=false;
-        parser->XiphLacing=true;
-    }
-    #endif
-    #if defined(MEDIAINFO_RM_YES)
-    else if (CodecID.find(__T("V_REAL/"))==0)
-    {
-        File_Rm* parser = new File_Rm;
-        streamItem.Parser = parser;
-        parser->FromMKV_StreamType=Stream_Video;
-    }
-    #endif
-    #if defined(MEDIAINFO_AC3_YES)
-    else if (Format==__T("AC-3") || Format==__T("E-AC-3") || Format==__T("TrueHD"))
-    {
-        streamItem.Parser=new File_Ac3;
-    }
-    #endif
-    #if defined(MEDIAINFO_DTS_YES)
-    else if (Format==__T("DTS"))
-    {
-        streamItem.Parser=new File_Dts;
-    }
-    #endif
-    #if defined(MEDIAINFO_AAC_YES)
-    else if (CodecID==(__T("A_AAC")))
-    {
-        File_Aac* parser = new File_Aac;
-        streamItem.Parser = parser;
-        parser->Mode=File_Aac::Mode_AudioSpecificConfig;
-    }
-    #endif
-    #if defined(MEDIAINFO_AAC_YES)
-    else if (CodecID.find(__T("A_AAC/"))==0)
-    {
-        Ztring Profile;
-        int8u audioObjectType=0, Version=0, SBR=2, PS=2;
-             if (CodecID==__T("A_AAC/MPEG2/MAIN"))     {Version=2; Profile=__T("Main");                   audioObjectType=1;}
-        else if (CodecID==__T("A_AAC/MPEG2/LC"))       {Version=2; Profile=__T("LC");                     audioObjectType=2; SBR=0;}
-        else if (CodecID==__T("A_AAC/MPEG2/LC/SBR"))   {Version=2; Profile=__T("HE-AAC / LC");            audioObjectType=2; SBR=1;}
-        else if (CodecID==__T("A_AAC/MPEG2/SSR"))      {Version=2; Profile=__T("SSR");                    audioObjectType=3;}
-        else if (CodecID==__T("A_AAC/MPEG4/MAIN"))     {Version=4; Profile=__T("Main");                   audioObjectType=1;}
-        else if (CodecID==__T("A_AAC/MPEG4/LC"))       {Version=4; Profile=__T("LC");                     audioObjectType=2; SBR=0;}
-        else if (CodecID==__T("A_AAC/MPEG4/LC/SBR"))   {Version=4; Profile=__T("HE-AAC / LC");            audioObjectType=2; SBR=1; PS=0;}
-        else if (CodecID==__T("A_AAC/MPEG4/LC/SBR/PS")){Version=4; Profile=__T("HE-AACv2 / HE-AAC / LC"); audioObjectType=2; SBR=1; PS=1;}
-        else if (CodecID==__T("A_AAC/MPEG4/SSR"))      {Version=4; Profile=__T("SSR");                    audioObjectType=3;}
-        else if (CodecID==__T("A_AAC/MPEG4/LTP"))      {Version=4; Profile=__T("LTP");                    audioObjectType=4;}
-        else if (CodecID==__T("raac"))                 {           Profile=__T("LC");                     audioObjectType=2;}
-        else if (CodecID==__T("racp"))                 {           Profile=__T("HE-AAC / LC");            audioObjectType=2; SBR=1; PS=0;}
-
-        if (Version>0)
-            Fill(Stream_Audio, StreamPos_Last, Audio_Format_Version, Version==2?"Version 2":"Version 4");
-        Fill(Stream_Audio, StreamPos_Last, Audio_Format_Profile, Profile);
-        if (SBR!=2)
-            Fill(Stream_Audio, StreamPos_Last, Audio_Format_Settings_SBR, SBR?"Yes":"No");
-        if (PS!=2)
-            Fill(Stream_Audio, StreamPos_Last, Audio_Format_Settings_PS, PS?"Yes":"No");
-        int64s sampling_frequency=Retrieve(Stream_Audio, StreamPos_Last, Audio_SamplingRate).To_int64s();
-
-        File_Aac* parser = new File_Aac;
-        streamItem.Parser = parser;
-        parser->Mode=File_Aac::Mode_AudioSpecificConfig;
-        parser->AudioSpecificConfig_OutOfBand(sampling_frequency, audioObjectType, SBR==1?true:false, PS==1?true:false, SBR==1?true:false, PS==1?true:false);
-    }
-    #endif
-    #if defined(MEDIAINFO_AAC_YES)
-    else if (Format==(__T("AAC")))
-    {
-        File_Aac* parser = new File_Aac;
-        streamItem.Parser = parser;
-        parser->Mode=File_Aac::Mode_ADTS;
-    }
-    #endif
-    #if defined(MEDIAINFO_MPEGA_YES)
-    else if (Format==__T("MPEG Audio"))
-    {
-        streamItem.Parser=new File_Mpega;
-    }
-    #endif
-    #if defined(MEDIAINFO_FLAC_YES)
-    else if (Format==__T("Flac"))
-    {
-        streamItem.Parser=new File_Flac;
-    }
-    #endif
-    #if defined(MEDIAINFO_OPUS_YES)
-    else if (CodecID.find(__T("A_OPUS"))==0) //http://wiki.xiph.org/MatroskaOpus
-    {
-        streamItem.Parser=new File_Opus;
-    }
-    #endif
-    #if defined(MEDIAINFO_WVPK_YES)
-    else if (Format==__T("WavPack"))
-    {
-        File_Wvpk* parser = new File_Wvpk;
-        streamItem.Parser = parser;
-        parser->FromMKV=true;
-    }
-    #endif
-    #if defined(MEDIAINFO_TTA_YES)
-    else if (Format==__T("TTA"))
-    {
-        //streamItem.Parser=new File_Tta; //Parser is not needed, because header is useless and dropped (the parser analyses only the header)
-    }
-    #endif
     #if defined(MEDIAINFO_PCM_YES)
     else if (Format==__T("PCM"))
     {
         File_Pcm* parser = new File_Pcm;
         streamItem.Parser = parser;
         parser->Codec=CodecID;
-    }
-    #endif
-    #if defined(MEDIAINFO_RM_YES)
-    else if (CodecID.find(__T("A_REAL/"))==0)
-    {
-        File_Rm* parser = new File_Rm;
-        streamItem.Parser = parser;
-        parser->FromMKV_StreamType=Stream_Audio;
     }
     #endif
     Element_Code=TrackNumber;

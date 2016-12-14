@@ -22,9 +22,6 @@
 #if MEDIAINFO_EVENTS
     #include "ZenLib/FileName.h"
 #endif //MEDIAINFO_EVENTS
-#if MEDIAINFO_IBI || MEDIAINFO_AES
-    #include "base64.h"
-#endif //MEDIAINFO_IBI || MEDIAINFO_AES
 #include <algorithm>
 #if MEDIAINFO_DEMUX
     #include <cmath>
@@ -158,21 +155,12 @@ MediaInfo_Config_MediaInfo::MediaInfo_Config_MediaInfo()
             File_Demux_Unpacketize_StreamLayoutChange_Skip=false;
         #endif //MEDIAINFO_DEMUX
     #endif //MEDIAINFO_ADVANCED
-    #if MEDIAINFO_MD5
-        File_Md5=false;
-    #endif //MEDIAINFO_MD5
     #if defined(MEDIAINFO_REFERENCES_YES)
         File_CheckSideCarFiles=false;
     #endif //defined(MEDIAINFO_REFERENCES_YES)
     File_TimeToLive=0;
     File_Buffer_Size_Hint_Pointer=NULL;
     File_Buffer_Read_Size=64*1024*1024;
-    #if MEDIAINFO_AES
-        Encryption_Format=Encryption_Format_None;
-        Encryption_Method=Encryption_Method_None;
-        Encryption_Mode=Encryption_Mode_None;
-        Encryption_Padding=Encryption_Padding_None;
-    #endif //MEDIAINFO_AES
     #if MEDIAINFO_NEXTPACKET
         NextPacket=false;
     #endif //MEDIAINFO_NEXTPACKET
@@ -192,8 +180,6 @@ MediaInfo_Config_MediaInfo::MediaInfo_Config_MediaInfo()
         Demux_ForceIds=false;
         Demux_PCM_20bitTo16bit=false;
         Demux_PCM_20bitTo24bit=false;
-        Demux_Avc_Transcode_Iso14496_15_to_Iso14496_10=false;
-        Demux_Hevc_Transcode_Iso14496_15_to_AnnexB=false;
         Demux_Unpacketize=false;
         Demux_Rate=0;
         Demux_FirstDts=(int64u)-1;
@@ -208,33 +194,8 @@ MediaInfo_Config_MediaInfo::MediaInfo_Config_MediaInfo()
     #endif //MEDIAINFO_IBIUSAGE
 
     //Specific
-    File_MpegTs_ForceMenu=false;
-    File_MpegTs_stream_type_Trust=true;
-    File_MpegTs_Atsc_transport_stream_id_Trust=true;
-    File_MpegTs_RealTime=false;
-    File_Mxf_TimeCodeFromMaterialPackage=false;
-    File_Mxf_ParseIndex=false;
-    File_Bdmv_ParseTargetedFile=true;
-    #if defined(MEDIAINFO_DVDIF_YES)
-    File_DvDif_DisableAudioIfIsInContainer=false;
-    File_DvDif_IgnoreTransmittingFlags=false;
-    #endif //defined(MEDIAINFO_DVDIF_YES)
-    #if defined(MEDIAINFO_DVDIF_ANALYZE_YES)
-        File_DvDif_Analysis=false;
-    #endif //defined(MEDIAINFO_DVDIF_ANALYZE_YES)
-    #if MEDIAINFO_MACROBLOCKS
-        File_Macroblocks_Parse=false;
-    #endif //MEDIAINFO_MACROBLOCKS
     File_GrowingFile_Delay=10;
-    #if defined(MEDIAINFO_LIBMMS_YES)
-        File_Mmsh_Describe_Only=false;
-    #endif //defined(MEDIAINFO_LIBMMS_YES)
-    File_Eia608_DisplayEmptyStream=false;
-    File_Eia708_DisplayEmptyStream=false;
     State=0;
-    #if defined(MEDIAINFO_AC3_YES)
-    File_Ac3_IgnoreCrc=false;
-    #endif //defined(MEDIAINFO_AC3_YES)
 
     //Internal to MediaInfo, not thread safe
     File_Names_Pos=0;
@@ -247,16 +208,6 @@ MediaInfo_Config_MediaInfo::MediaInfo_Config_MediaInfo()
     File_IsGrowing=false;
     File_IsNotGrowingAnymore=false;
     File_IsImageSequence=false;
-    #if defined(MEDIAINFO_EIA608_YES)
-    File_Scte20_IsPresent=false;
-    #endif //defined(MEDIAINFO_EIA608_YES)
-    #if defined(MEDIAINFO_EIA608_YES) || defined(MEDIAINFO_EIA708_YES)
-    File_DtvccTransport_Stream_IsPresent=false;
-    File_DtvccTransport_Descriptor_IsPresent=false;
-    #endif //defined(MEDIAINFO_EIA608_YES) || defined(MEDIAINFO_EIA708_YES)
-    #if defined(MEDIAINFO_MPEGPS_YES)
-    File_MpegPs_PTS_Begin_IsNearZero=false;
-    #endif //defined(MEDIAINFO_MPEGPS_YES)
     File_Current_Offset=0;
     File_Current_Size=(int64u)-1;
     File_IgnoreEditsBefore=0;
@@ -265,7 +216,6 @@ MediaInfo_Config_MediaInfo::MediaInfo_Config_MediaInfo()
     File_Size=(int64u)-1;
     ParseSpeed=MediaInfoLib::Config.ParseSpeed_Get();
     #if MEDIAINFO_EVENTS
-        Config_PerPackage=NULL;
         Events_TimestampShift_Disabled=false;
     #endif //MEDIAINFO_EVENTS
     #if MEDIAINFO_DEMUX
@@ -497,67 +447,6 @@ Ztring MediaInfo_Config_MediaInfo::Option (const String &Option, const String &V
             return __T("Advanced features disabled due to compilation options");
         #endif //MEDIAINFO_ADVANCED
     }
-    else if (Option_Lower==__T("file_md5"))
-    {
-        #if MEDIAINFO_MD5
-            File_Md5_Set(!(Value==__T("0") || Value.empty()));
-            return Ztring();
-        #else //MEDIAINFO_MD5
-            return __T("MD5 is disabled due to compilation options");
-        #endif //MEDIAINFO_MD5
-    }
-    else if (Option_Lower==__T("file_hash"))
-    {
-        #if MEDIAINFO_HASH
-            ZtringList List;
-            List.Separator_Set(0, __T(","));
-            List.Write(Value);
-            ZtringList ToReturn;
-            ToReturn.Separator_Set(0, __T(","));
-            HashWrapper::HashFunctions Functions;
-            for (size_t i=0; i<List.size(); ++i)
-            {
-                Ztring Value(List[i]);
-                Value.MakeLowerCase();
-                bool Found=false;
-                for (size_t j=0; j<HashWrapper::HashFunction_Max; ++j)
-                {
-                    Ztring Name;
-                    Name.From_UTF8(HashWrapper::Name((HashWrapper::HashFunction)j));
-                    Name.MakeLowerCase();
-                    if (Value==Name)
-                    {
-                        Functions.set(j);
-                        Found=true;
-                    }
-                }
-
-                if (!Found)
-                    ToReturn.push_back(List[i]);
-            }
-            File_Hash_Set(Functions);
-            if (ToReturn.empty())
-                return Ztring();
-            else
-                return ToReturn.Read()+__T(" hash functions are unknown or disabled due to compilation options");
-        #else //MEDIAINFO_HASH
-            return __T("Hash functions are disabled due to compilation options");
-        #endif //MEDIAINFO_HASH
-    }
-    else if (Option_Lower==__T("file_hash_get"))
-    {
-        #if MEDIAINFO_HASH
-            ZtringList List;
-            HashWrapper::HashFunctions Functions=File_Hash_Get();
-            for (size_t i=0; i<HashWrapper::HashFunction_Max; ++i)
-                if (Functions[i])
-                    List.push_back(Ztring().From_UTF8(HashWrapper::Name((HashWrapper::HashFunction)i)));
-            List.Separator_Set(0, __T(","));
-            return List.Read();
-        #else //MEDIAINFO_HASH
-            return __T("Hash functions are disabled due to compilation options");
-        #endif //MEDIAINFO_HASH
-    }
     else if (Option_Lower==__T("file_checksidecarfiles"))
     {
         #if defined(MEDIAINFO_REFERENCES_YES)
@@ -715,30 +604,6 @@ Ztring MediaInfo_Config_MediaInfo::Option (const String &Option, const String &V
             return __T("Demux manager is disabled due to compilation options");
         #endif //MEDIAINFO_DEMUX
     }
-    else if (Option_Lower==__T("file_demux_avc_transcode_iso14496_15_to_iso14496_10"))
-    {
-        #if MEDIAINFO_DEMUX
-            if (Ztring(Value).To_int64u()==0)
-                Demux_Avc_Transcode_Iso14496_15_to_Iso14496_10_Set(false);
-            else
-                Demux_Avc_Transcode_Iso14496_15_to_Iso14496_10_Set(true);
-            return Ztring();
-        #else //MEDIAINFO_DEMUX
-            return __T("Demux manager is disabled due to compilation options");
-        #endif //MEDIAINFO_DEMUX
-    }
-    else if (Option_Lower==__T("file_demux_hevc_transcode_iso14496_15_to_annexb"))
-    {
-        #if MEDIAINFO_DEMUX
-            if (Ztring(Value).To_int64u()==0)
-                Demux_Hevc_Transcode_Iso14496_15_to_AnnexB_Set(false);
-            else
-                Demux_Hevc_Transcode_Iso14496_15_to_AnnexB_Set(true);
-            return Ztring();
-        #else //MEDIAINFO_DEMUX
-            return __T("Demux manager is disabled due to compilation options");
-        #endif //MEDIAINFO_DEMUX
-    }
     else if (Option_Lower==__T("file_demux_unpacketize"))
     {
         #if MEDIAINFO_DEMUX
@@ -848,61 +713,7 @@ Ztring MediaInfo_Config_MediaInfo::Option (const String &Option, const String &V
             return __T("IBI support is disabled due to compilation options");
         #endif //MEDIAINFO_IBIUSAGE
     }
-    else if (Option_Lower==__T("file_encryption_format"))
-    {
-        #if MEDIAINFO_AES
-            Encryption_Format_Set(Value);
-            return Ztring();
-        #else //MEDIAINFO_AES
-            return __T("Encryption manager is disabled due to compilation options");
-        #endif //MEDIAINFO_AES
-    }
-    else if (Option_Lower==__T("file_encryption_key"))
-    {
-        #if MEDIAINFO_AES
-            Encryption_Key_Set(Value);
-            return Ztring();
-        #else //MEDIAINFO_AES
-            return __T("Encryption manager is disabled due to compilation options");
-        #endif //MEDIAINFO_AES
-    }
-    else if (Option_Lower==__T("file_encryption_method"))
-    {
-        #if MEDIAINFO_AES
-            Encryption_Method_Set(Value);
-            return Ztring();
-        #else //MEDIAINFO_AES
-            return __T("Encryption manager is disabled due to compilation options");
-        #endif //MEDIAINFO_AES
-    }
-    else if (Option_Lower==__T("file_encryption_mode") || Option_Lower==__T("file_encryption_modeofoperation"))
-    {
-        #if MEDIAINFO_AES
-            Encryption_Mode_Set(Value);
-            return Ztring();
-        #else //MEDIAINFO_AES
-            return __T("Encryption manager is disabled due to compilation options");
-        #endif //MEDIAINFO_AES
-    }
-    else if (Option_Lower==__T("file_encryption_padding"))
-    {
-        #if MEDIAINFO_AES
-            Encryption_Padding_Set(Value);
-            return Ztring();
-        #else //MEDIAINFO_AES
-            return __T("Encryption manager is disabled due to compilation options");
-        #endif //MEDIAINFO_AES
-    }
-    else if (Option_Lower==__T("file_encryption_initializationvector"))
-    {
-        #if MEDIAINFO_AES
-            Encryption_InitializationVector_Set(Value);
-            return Ztring();
-        #else //MEDIAINFO_AES
-            return __T("Encryption manager is disabled due to compilation options");
-        #endif //MEDIAINFO_AES
-    }
-    else if (Option_Lower==__T("file_nextpacket"))
+     else if (Option_Lower==__T("file_nextpacket"))
     {
         #if MEDIAINFO_NEXTPACKET
             if (Ztring(Value).To_int64u()==0)
@@ -940,137 +751,6 @@ Ztring MediaInfo_Config_MediaInfo::Option (const String &Option, const String &V
         #else //MEDIAINFO_EVENTS
             return __T("Event manager is disabled due to compilation options");
         #endif //MEDIAINFO_EVENTS
-    }
-    else if (Option_Lower==__T("file_mpegts_forcemenu"))
-    {
-        File_MpegTs_ForceMenu_Set(!(Value==__T("0") || Value.empty()));
-        return __T("");
-    }
-    else if (Option_Lower==__T("file_mpegts_forcemenu_get"))
-    {
-        return File_MpegTs_ForceMenu_Get()?"1":"0";
-    }
-    else if (Option_Lower==__T("file_mpegts_stream_type_trust"))
-    {
-        File_MpegTs_stream_type_Trust_Set(!(Value==__T("0") || Value.empty()));
-        return __T("");
-    }
-    else if (Option_Lower==__T("file_mpegts_stream_type_trust_get"))
-    {
-        return File_MpegTs_stream_type_Trust_Get()?"1":"0";
-    }
-    else if (Option_Lower==__T("file_mpegts_atsc_transport_stream_id_trust"))
-    {
-        File_MpegTs_Atsc_transport_stream_id_Trust_Set(!(Value==__T("0") || Value.empty()));
-        return __T("");
-    }
-    else if (Option_Lower==__T("file_mpegts_atsc_transport_stream_id_trust_get"))
-    {
-        return File_MpegTs_Atsc_transport_stream_id_Trust_Get()?"1":"0";
-    }
-    else if (Option_Lower==__T("file_mpegts_realtime"))
-    {
-        File_MpegTs_RealTime_Set(!(Value==__T("0") || Value.empty()));
-        return __T("");
-    }
-    else if (Option_Lower==__T("file_mpegts_realtime_get"))
-    {
-        return File_MpegTs_RealTime_Get()?"1":"0";
-    }
-    else if (Option_Lower==__T("file_mxf_timecodefrommaterialpackage"))
-    {
-        File_Mxf_TimeCodeFromMaterialPackage_Set(!(Value==__T("0") || Value.empty()));
-        return __T("");
-    }
-    else if (Option_Lower==__T("file_mxf_timecodefrommaterialpackage_get"))
-    {
-        return File_Mxf_TimeCodeFromMaterialPackage_Get()?"1":"0";
-    }
-    else if (Option_Lower==__T("file_mxf_parseindex"))
-    {
-        File_Mxf_ParseIndex_Set(!(Value==__T("0") || Value.empty()));
-        return __T("");
-    }
-    else if (Option_Lower==__T("file_mxf_parseindex_get"))
-    {
-        return File_Mxf_ParseIndex_Get()?"1":"0";
-    }
-    else if (Option_Lower==__T("file_bdmv_parsetargetedfile"))
-    {
-        File_Bdmv_ParseTargetedFile_Set(!(Value==__T("0") || Value.empty()));
-        return __T("");
-    }
-    else if (Option_Lower==__T("file_bdmv_parsetargetedfile_get"))
-    {
-        return File_Bdmv_ParseTargetedFile_Get()?"1":"0";
-    }
-    else if (Option_Lower==__T("file_dvdif_disableaudioifisincontainer"))
-    {
-        #if defined(MEDIAINFO_DVDIF_YES)
-            File_DvDif_DisableAudioIfIsInContainer_Set(!(Value==__T("0") || Value.empty()));
-            return __T("");
-        #else //defined(MEDIAINFO_DVDIF_YES)
-            return __T("DVDIF is disabled due to compilation options");
-        #endif //defined(MEDIAINFO_DVDIF_YES)
-    }
-    else if (Option_Lower==__T("file_dvdif_disableaudioifisincontainer_get"))
-    {
-        #if defined(MEDIAINFO_DVDIF_YES)
-            return File_DvDif_DisableAudioIfIsInContainer_Get()?"1":"0";
-        #else //defined(MEDIAINFO_DVDIF_YES)
-            return __T("DVDIF is disabled due to compilation options");
-        #endif //defined(MEDIAINFO_DVDIF_YES)
-    }
-    else if (Option_Lower==__T("file_dvdif_ignoretransmittingflags"))
-    {
-        #if defined(MEDIAINFO_DVDIF_YES)
-            File_DvDif_IgnoreTransmittingFlags_Set(!(Value==__T("0") || Value.empty()));
-            return __T("");
-        #else //defined(MEDIAINFO_DVDIF_YES)
-            return __T("DVDIF is disabled due to compilation options");
-        #endif //defined(MEDIAINFO_DVDIF_YES)
-    }
-    else if (Option_Lower==__T("file_dvdif_ignoretransmittingflags_get"))
-    {
-        #if defined(MEDIAINFO_DVDIF_YES)
-            return File_DvDif_IgnoreTransmittingFlags_Get()?"1":"0";
-        #else //defined(MEDIAINFO_DVDIF_YES)
-            return __T("DVDIF is disabled due to compilation options");
-        #endif //defined(MEDIAINFO_DVDIF_YES)
-    }
-    else if (Option_Lower==__T("file_dvdif_analysis"))
-    {
-        #if defined(MEDIAINFO_DVDIF_ANALYZE_YES)
-            File_DvDif_Analysis_Set(!(Value==__T("0") || Value.empty()));
-            return __T("");
-        #else //defined(MEDIAINFO_DVDIF_ANALYZE_YES)
-            return __T("DVDIF Analysis is disabled due to compilation options");
-        #endif //defined(MEDIAINFO_DVDIF_ANALYZE_YES)
-    }
-    else if (Option_Lower==__T("file_dvdif_analysis_get"))
-    {
-        #if defined(MEDIAINFO_DVDIF_ANALYZE_YES)
-            return File_DvDif_Analysis_Get()?"1":"0";
-        #else //defined(MEDIAINFO_DVDIF_ANALYZE_YES)
-            return __T("DVDIF Analysis is disabled due to compilation options");
-        #endif //defined(MEDIAINFO_DVDIF_ANALYZE_YES)
-    }
-    else if (Option_Lower==__T("file_macroblocks_parse"))
-    {
-        #if MEDIAINFO_MACROBLOCKS
-            File_Macroblocks_Parse_Set(!(Value==__T("0") || Value.empty()));
-            return __T("");
-        #else //MEDIAINFO_MACROBLOCKS
-            return __T("Macroblock parsing is disabled due to compilation options");
-        #endif //MEDIAINFO_MACROBLOCKS
-    }
-    else if (Option_Lower==__T("file_macroblocks_parse_get"))
-    {
-        #if MEDIAINFO_MACROBLOCKS
-            return File_Macroblocks_Parse_Get()?"1":"0";
-        #else //MEDIAINFO_MACROBLOCKS
-            return __T("Macroblock parsing is disabled due to compilation options");
-        #endif //MEDIAINFO_MACROBLOCKS
     }
     else if (Option_Lower==__T("file_growingfile_delay"))
     {
@@ -1137,41 +817,6 @@ Ztring MediaInfo_Config_MediaInfo::Option (const String &Option, const String &V
         #else //defined(MEDIAINFO_LIBMMS_YES)
             return __T("Libmms support is disabled due to compilation options");
         #endif //defined(MEDIAINFO_LIBMMS_YES)
-    }
-    else if (Option_Lower==__T("file_eia708_displayemptystream"))
-    {
-        File_Eia708_DisplayEmptyStream_Set(!(Value==__T("0") || Value.empty()));
-        return __T("");
-    }
-    else if (Option_Lower==__T("file_eia708_displayemptystream_get"))
-    {
-        return File_Eia708_DisplayEmptyStream_Get()?"1":"0";
-    }
-    else if (Option_Lower==__T("file_eia608_displayemptystream"))
-    {
-        File_Eia608_DisplayEmptyStream_Set(!(Value==__T("0") || Value.empty()));
-        return __T("");
-    }
-    else if (Option_Lower==__T("file_eia608_displayemptystream_get"))
-    {
-        return File_Eia608_DisplayEmptyStream_Get()?"1":"0";
-    }
-    else if (Option_Lower==__T("file_ac3_ignorecrc"))
-    {
-        #if defined(MEDIAINFO_AC3_YES)
-            File_Ac3_IgnoreCrc_Set(!(Value==__T("0") || Value.empty()));
-            return __T("");
-        #else //defined(MEDIAINFO_AC3_YES)
-            return __T("AC-3 support is disabled due to compilation options");
-        #endif //defined(MEDIAINFO_AC3_YES)
-    }
-    else if (Option_Lower==__T("file_ac3_ignorecrc_get"))
-    {
-        #if defined(MEDIAINFO_AC3_YES)
-            return File_Ac3_IgnoreCrc_Get()?"1":"0";
-        #else //defined(MEDIAINFO_AC3_YES)
-            return __T("AC-3 support is disabled due to compilation options");
-        #endif //defined(MEDIAINFO_AC3_YES)
     }
     else if (Option_Lower==__T("file_event_callbackfunction"))
     {
@@ -1355,41 +1000,6 @@ bool MediaInfo_Config_MediaInfo::File_ID_OnlyRoot_Get ()
     CriticalSectionLocker CSL(CS);
     return File_ID_OnlyRoot;
 }
-
-//---------------------------------------------------------------------------
-#if MEDIAINFO_MD5
-void MediaInfo_Config_MediaInfo::File_Md5_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    File_Md5=NewValue;
-    Hash_Functions.set(HashWrapper::MD5, NewValue);
-}
-
-bool MediaInfo_Config_MediaInfo::File_Md5_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return Hash_Functions[HashWrapper::MD5];
-}
-#endif //MEDIAINFO_MD5
-
-//---------------------------------------------------------------------------
-#if MEDIAINFO_HASH
-void MediaInfo_Config_MediaInfo::File_Hash_Set (HashWrapper::HashFunctions Funtions)
-{
-    CriticalSectionLocker CSL(CS);
-    Hash_Functions=Funtions;
-    
-    //Legacy
-    if (File_Md5)
-        Hash_Functions.set(HashWrapper::MD5);
-}
-
-HashWrapper::HashFunctions MediaInfo_Config_MediaInfo::File_Hash_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return Hash_Functions;
-}
-#endif //MEDIAINFO_HASH
 
 //---------------------------------------------------------------------------
 #if defined(MEDIAINFO_REFERENCES_YES)
@@ -1861,32 +1471,6 @@ bool MediaInfo_Config_MediaInfo::Demux_PCM_20bitTo24bit_Get ()
 }
 
 //---------------------------------------------------------------------------
-void MediaInfo_Config_MediaInfo::Demux_Avc_Transcode_Iso14496_15_to_Iso14496_10_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    Demux_Avc_Transcode_Iso14496_15_to_Iso14496_10=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::Demux_Avc_Transcode_Iso14496_15_to_Iso14496_10_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return Demux_Avc_Transcode_Iso14496_15_to_Iso14496_10;
-}
-
-//---------------------------------------------------------------------------
-void MediaInfo_Config_MediaInfo::Demux_Hevc_Transcode_Iso14496_15_to_AnnexB_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    Demux_Hevc_Transcode_Iso14496_15_to_AnnexB=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::Demux_Hevc_Transcode_Iso14496_15_to_AnnexB_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return Demux_Hevc_Transcode_Iso14496_15_to_AnnexB;
-}
-
-//---------------------------------------------------------------------------
 void MediaInfo_Config_MediaInfo::Demux_Unpacketize_Set (bool NewValue)
 {
     CriticalSectionLocker CSL(CS);
@@ -2023,203 +1607,6 @@ bool MediaInfo_Config_MediaInfo::TryToFix_Get ()
     return TryToFix || MediaInfoLib::Config.TryToFix_Get();
 }
 #endif //MEDIAINFO_FIXITY
-
-//***************************************************************************
-// Encryption
-//***************************************************************************
-
-//---------------------------------------------------------------------------
-#if MEDIAINFO_AES
-void MediaInfo_Config_MediaInfo::Encryption_Format_Set (const Ztring &Value)
-{
-    string Data=Value.To_UTF8();
-    encryption_format Encryption_Format_Temp=Encryption_Format_None;
-    if (Data=="AES")
-        Encryption_Format_Temp=Encryption_Format_Aes;
-
-    CriticalSectionLocker CSL(CS);
-    Encryption_Format=Encryption_Format_Temp;
-}
-
-//---------------------------------------------------------------------------
-void MediaInfo_Config_MediaInfo::Encryption_Format_Set (encryption_format Value)
-{
-    CriticalSectionLocker CSL(CS);
-    Encryption_Format=Value;
-}
-
-string MediaInfo_Config_MediaInfo::Encryption_Format_GetS ()
-{
-    CriticalSectionLocker CSL(CS);
-    switch (Encryption_Format)
-    {
-        case Encryption_Format_Aes: return "AES";
-        default: return string();
-    }
-}
-
-encryption_format MediaInfo_Config_MediaInfo::Encryption_Format_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return Encryption_Format;
-}
-#endif //MEDIAINFO_AES
-
-//---------------------------------------------------------------------------
-#if MEDIAINFO_AES
-void MediaInfo_Config_MediaInfo::Encryption_Key_Set (const Ztring &Value)
-{
-    string Data_Base64=Value.To_UTF8();
-
-    CriticalSectionLocker CSL(CS);
-    Encryption_Key=Base64::decode(Data_Base64);
-}
-
-void MediaInfo_Config_MediaInfo::Encryption_Key_Set (const int8u* Value, size_t Value_Size)
-{
-    CriticalSectionLocker CSL(CS);
-    Encryption_Key=string((const char*)Value, Value_Size);
-}
-
-string MediaInfo_Config_MediaInfo::Encryption_Key_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return Encryption_Key;
-}
-#endif //MEDIAINFO_AES
-
-//---------------------------------------------------------------------------
-#if MEDIAINFO_AES
-void MediaInfo_Config_MediaInfo::Encryption_Method_Set (const Ztring &Value)
-{
-    string Data=Value.To_UTF8();
-    encryption_method Encryption_Method_Temp=Encryption_Method_None;
-    if (Data=="Segment")
-        Encryption_Method_Temp=Encryption_Method_Segment;
-
-    CriticalSectionLocker CSL(CS);
-    Encryption_Method=Encryption_Method_Temp;
-}
-
-void MediaInfo_Config_MediaInfo::Encryption_Method_Set (encryption_method Value)
-{
-    CriticalSectionLocker CSL(CS);
-    Encryption_Method=Value;
-}
-
-string MediaInfo_Config_MediaInfo::Encryption_Method_GetS ()
-{
-    CriticalSectionLocker CSL(CS);
-    switch (Encryption_Method)
-    {
-        case Encryption_Method_Segment: return "Segment";
-        default: return string();
-    }
-}
-
-encryption_method MediaInfo_Config_MediaInfo::Encryption_Method_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return Encryption_Method;
-}
-#endif //MEDIAINFO_AES
-
-//---------------------------------------------------------------------------
-#if MEDIAINFO_AES
-void MediaInfo_Config_MediaInfo::Encryption_Mode_Set (const Ztring &Value)
-{
-    string Data=Value.To_UTF8();
-    encryption_mode Encryption_Mode_Temp=Encryption_Mode_None;
-    if (Data=="CBC")
-        Encryption_Mode_Temp=Encryption_Mode_Cbc;
-
-    CriticalSectionLocker CSL(CS);
-    Encryption_Mode=Encryption_Mode_Temp;
-}
-
-void MediaInfo_Config_MediaInfo::Encryption_Mode_Set (encryption_mode Value)
-{
-    CriticalSectionLocker CSL(CS);
-    Encryption_Mode=Value;
-}
-
-string MediaInfo_Config_MediaInfo::Encryption_Mode_GetS ()
-{
-    CriticalSectionLocker CSL(CS);
-    switch (Encryption_Mode)
-    {
-        case Encryption_Mode_Cbc: return "CBC";
-        default: return string();
-    }
-}
-
-encryption_mode MediaInfo_Config_MediaInfo::Encryption_Mode_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return Encryption_Mode;
-}
-#endif //MEDIAINFO_AES
-
-//---------------------------------------------------------------------------
-#if MEDIAINFO_AES
-void MediaInfo_Config_MediaInfo::Encryption_Padding_Set (const Ztring &Value)
-{
-    string Data=Value.To_UTF8();
-    encryption_padding Encryption_Padding_Temp=Encryption_Padding_None;
-    if (Data=="PKCS7")
-        Encryption_Padding_Temp=Encryption_Padding_Pkcs7;
-
-    CriticalSectionLocker CSL(CS);
-    Encryption_Padding=Encryption_Padding_Temp;
-}
-
-void MediaInfo_Config_MediaInfo::Encryption_Padding_Set (encryption_padding Value)
-{
-    CriticalSectionLocker CSL(CS);
-    Encryption_Padding=Value;
-}
-
-string MediaInfo_Config_MediaInfo::Encryption_Padding_GetS ()
-{
-    CriticalSectionLocker CSL(CS);
-    switch (Encryption_Padding)
-    {
-        case Encryption_Padding_Pkcs7: return "PKCS7";
-        default: return string();
-    }
-}
-
-encryption_padding MediaInfo_Config_MediaInfo::Encryption_Padding_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return Encryption_Padding;
-}
-#endif //MEDIAINFO_AES
-
-//---------------------------------------------------------------------------
-#if MEDIAINFO_AES
-void MediaInfo_Config_MediaInfo::Encryption_InitializationVector_Set (const Ztring &Value)
-{
-    if (Value==__T("Sequence number"))
-    {
-        CriticalSectionLocker CSL(CS);
-        Encryption_InitializationVector="Sequence number";
-    }
-    else
-    {
-        string Data_Base64=Value.To_UTF8();
-
-        CriticalSectionLocker CSL(CS);
-        Encryption_InitializationVector=Base64::decode(Data_Base64);
-    }
-}
-
-string MediaInfo_Config_MediaInfo::Encryption_InitializationVector_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return Encryption_InitializationVector;
-}
-#endif //MEDIAINFO_AES
 
 //***************************************************************************
 // NextPacket
@@ -2422,118 +1809,6 @@ void MediaInfo_Config_MediaInfo::Event_Send (File__Analyze* Source, const int8u*
                         Temp->PTS-=TimeOffset;
                     else
                         Temp->PTS=0;
-                }
-            }
-        }
-    }
-
-    //Adaptation of time stamps
-    if (!FileIsReferenced && !Events_TimestampShift_Disabled)
-    {
-        MediaInfo_Event_Generic* Event=(MediaInfo_Event_Generic*)Data_Content;
-
-        if (Event->StreamIDs_Size>=2 && Event->ParserIDs[0]==MediaInfo_Parser_MpegTs && Event->ParserIDs[1]==MediaInfo_Parser_MpegPs)
-        {
-            //Catching reference stream
-            if (Event->StreamIDs[1]==0xE0 && Events_TimestampShift_Reference_ID==(int64u)-1)
-                Events_TimestampShift_Reference_ID=Event->StreamIDs[0];
-
-            //Store the last PTS of the reference stream
-            if (Events_TimestampShift_Reference_ID==Event->StreamIDs[0] && Event->PTS!=(int64u)-1)
-                Events_TimestampShift_Reference_PTS=Event->PTS;
-
-            //Sending events whose were delayed
-            if (!Events_TimestampShift_Delayed.empty() && Events_TimestampShift_Reference_ID!=(int64u)-1 && Event->PTS!=(int64u)-1)
-            {
-                Events_TimestampShift_Disabled=true; //Disable the sending of events in the next call
-
-                for (size_t Pos=0; Pos<Events_TimestampShift_Delayed.size(); Pos++)
-                    if (Events_TimestampShift_Delayed[Pos])
-                    {
-                        Event_Send(NULL, Events_TimestampShift_Delayed[Pos]->Data_Content, Events_TimestampShift_Delayed[Pos]->Data_Size, Events_TimestampShift_Delayed[Pos]->File_Name);
-
-                        int32u EventCode=*((int32u*)Events_TimestampShift_Delayed[Pos]->Data_Content);
-                        bool IsSimpleText=(EventCode&0x00FFFF00)==(MediaInfo_Event_Global_SimpleText<<8);
-                        if (IsSimpleText)
-                        {
-                            MediaInfo_Event_Global_SimpleText_0* Old=(MediaInfo_Event_Global_SimpleText_0*)Events_TimestampShift_Delayed[Pos]->Data_Content;
-                            delete[] Old->Content; //Old->Content=NULL;
-                            if (Old->Row_Values)
-                            {
-                                for (size_t Row_Pos=0; Row_Pos<Old->Row_Max; Row_Pos++)
-                                    delete[] Old->Row_Values[Row_Pos]; // Row_Values[Row_Pos]=NULL;
-                                delete[] Old->Row_Values; //Old->Row_Values=NULL;
-                            }
-                            if (Old->Row_Attributes)
-                            {
-                                for (size_t Row_Pos=0; Row_Pos<Old->Row_Max; Row_Pos++)
-                                    delete[] Old->Row_Attributes[Row_Pos]; // Row_Attributes[Row_Pos]=NULL;
-                                delete[] Old->Row_Attributes; //Old->Row_Attributes=NULL;
-                            }
-                        }
-
-                        delete Events_TimestampShift_Delayed[Pos]; //Events_TimestampShift_Delayed[Pos]=NULL;
-                    }
-                Events_TimestampShift_Delayed.clear();
-                Events_TimestampShift_Disabled=false;
-            }
-
-            //MediaInfo_Event_Global_SimpleText
-            if ((Event->EventCode &0x00FFFF00)==(MediaInfo_Event_Global_SimpleText<<8)) //If it is MediaInfo_Event_Global_SimpleText
-            {
-                //Store the event if there is no reference stream
-                if (Events_TimestampShift_Reference_ID==(int64u)-1 || Events_TimestampShift_Reference_PTS==(int64u)-1)
-                {
-                    event_delayed* Event=new event_delayed(Data_Content, Data_Size, File_Name);
-                    Events_TimestampShift_Delayed.push_back(Event);
-
-                    // Copying buffers
-                    int32u* EventCode=(int32u*)Data_Content;
-                    if (((*EventCode)&0x00FFFFFF)==(MediaInfo_Event_Global_SimpleText<<8) && Data_Size==sizeof(MediaInfo_Event_Global_SimpleText_0))
-                    {
-                        MediaInfo_Event_Global_SimpleText_0* Old=(MediaInfo_Event_Global_SimpleText_0*)Data_Content;
-                        MediaInfo_Event_Global_SimpleText_0* New=(MediaInfo_Event_Global_SimpleText_0*)Event->Data_Content;
-                        if (New->Content)
-                        {
-                            size_t Content_Size=wcslen(New->Content);
-                            wchar_t* Content=new wchar_t[Content_Size+1];
-                            std::memcpy(Content, Old->Content, (Content_Size+1)*sizeof(wchar_t));
-                            New->Content=Content;
-                        }
-                        if (New->Row_Values)
-                        {
-                            wchar_t** Row_Values=new wchar_t*[New->Row_Max];
-                            for (size_t Row_Pos=0; Row_Pos<New->Row_Max; Row_Pos++)
-                            {
-                                Row_Values[Row_Pos]=new wchar_t[New->Column_Max];
-                                std::memcpy(Row_Values[Row_Pos], Old->Row_Values[Row_Pos], New->Column_Max*sizeof(wchar_t));
-                            }
-                            New->Row_Values=Row_Values;
-                        }
-                        if (New->Row_Attributes)
-                        {
-                            int8u** Row_Attributes=new int8u*[New->Row_Max];
-                            for (size_t Row_Pos=0; Row_Pos<New->Row_Max; Row_Pos++)
-                            {
-                                Row_Attributes[Row_Pos]=new int8u[New->Column_Max];
-                                std::memcpy(Row_Attributes[Row_Pos], Old->Row_Attributes[Row_Pos], New->Column_Max*sizeof(int8u));
-                            }
-                            New->Row_Attributes=Row_Attributes;
-                        }
-                    }
-                    return;
-                }
-
-                //Shift of the PTS if difference is too huge
-                if (Event->PTS>Events_TimestampShift_Reference_PTS+60000000000LL) // difference more than 60 seconds
-                {
-                    int64u Shift= Event->PTS -Events_TimestampShift_Reference_PTS;
-                    if (Shift>=55555555555555LL-10000000000LL && Shift<=55555555555555LL+10000000000LL) //+/- 10 second
-                        Shift=55555555555555LL;
-                    if (Event->PTS!=(int64u)-1)
-                        Event->PTS-=Shift;
-                    if (Event->DTS!=(int64u)-1)
-                        Event->DTS-=Shift;
                 }
             }
         }
@@ -2789,173 +2064,6 @@ void MediaInfo_Config_MediaInfo::Event_SubFile_Missing_Absolute(const Ztring &Fi
 //***************************************************************************
 
 //---------------------------------------------------------------------------
-void MediaInfo_Config_MediaInfo::File_MpegTs_ForceMenu_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    File_MpegTs_ForceMenu=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::File_MpegTs_ForceMenu_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    bool Temp=File_MpegTs_ForceMenu;
-    return Temp;
-}
-
-//---------------------------------------------------------------------------
-void MediaInfo_Config_MediaInfo::File_MpegTs_stream_type_Trust_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    File_MpegTs_stream_type_Trust=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::File_MpegTs_stream_type_Trust_Get ()
-{
-    CS.Enter();
-    bool Temp=File_MpegTs_stream_type_Trust;
-    CS.Leave();
-    return Temp;
-}
-
-//---------------------------------------------------------------------------
-void MediaInfo_Config_MediaInfo::File_MpegTs_Atsc_transport_stream_id_Trust_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    File_MpegTs_Atsc_transport_stream_id_Trust=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::File_MpegTs_Atsc_transport_stream_id_Trust_Get ()
-{
-    CS.Enter();
-    bool Temp=File_MpegTs_Atsc_transport_stream_id_Trust;
-    CS.Leave();
-    return Temp;
-}
-
-//---------------------------------------------------------------------------
-void MediaInfo_Config_MediaInfo::File_MpegTs_RealTime_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    File_MpegTs_RealTime=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::File_MpegTs_RealTime_Get ()
-{
-    CS.Enter();
-    bool Temp=File_MpegTs_RealTime;
-    CS.Leave();
-    return Temp;
-}
-
-//---------------------------------------------------------------------------
-void MediaInfo_Config_MediaInfo::File_Mxf_TimeCodeFromMaterialPackage_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    File_Mxf_TimeCodeFromMaterialPackage=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::File_Mxf_TimeCodeFromMaterialPackage_Get ()
-{
-    CS.Enter();
-    bool Temp=File_Mxf_TimeCodeFromMaterialPackage;
-    CS.Leave();
-    return Temp;
-}
-
-//---------------------------------------------------------------------------
-void MediaInfo_Config_MediaInfo::File_Mxf_ParseIndex_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    File_Mxf_ParseIndex=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::File_Mxf_ParseIndex_Get ()
-{
-    CS.Enter();
-    bool Temp=File_Mxf_ParseIndex;
-    CS.Leave();
-    return Temp;
-}
-
-//---------------------------------------------------------------------------
-void MediaInfo_Config_MediaInfo::File_Bdmv_ParseTargetedFile_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    File_Bdmv_ParseTargetedFile=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::File_Bdmv_ParseTargetedFile_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    bool Temp=File_Bdmv_ParseTargetedFile;
-    return Temp;
-}
-
-//---------------------------------------------------------------------------
-#if defined(MEDIAINFO_DVDIF_YES)
-void MediaInfo_Config_MediaInfo::File_DvDif_DisableAudioIfIsInContainer_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    File_DvDif_DisableAudioIfIsInContainer=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::File_DvDif_DisableAudioIfIsInContainer_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    bool Temp=File_DvDif_DisableAudioIfIsInContainer;
-    return Temp;
-}
-#endif //defined(MEDIAINFO_DVDIF_YES)
-
-//---------------------------------------------------------------------------
-#if defined(MEDIAINFO_DVDIF_YES)
-void MediaInfo_Config_MediaInfo::File_DvDif_IgnoreTransmittingFlags_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    File_DvDif_IgnoreTransmittingFlags=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::File_DvDif_IgnoreTransmittingFlags_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    bool Temp=File_DvDif_IgnoreTransmittingFlags;
-    return Temp;
-}
-#endif //defined(MEDIAINFO_DVDIF_YES)
-
-//---------------------------------------------------------------------------
-#if defined(MEDIAINFO_DVDIF_ANALYZE_YES)
-void MediaInfo_Config_MediaInfo::File_DvDif_Analysis_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    File_DvDif_Analysis=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::File_DvDif_Analysis_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    bool Temp=File_DvDif_Analysis;
-    return Temp;
-}
-#endif //defined(MEDIAINFO_DVDIF_ANALYZE_YES)
-
-//---------------------------------------------------------------------------
-#if MEDIAINFO_MACROBLOCKS
-void MediaInfo_Config_MediaInfo::File_Macroblocks_Parse_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    File_Macroblocks_Parse=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::File_Macroblocks_Parse_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    bool Temp=File_Macroblocks_Parse;
-    return Temp;
-}
-#endif //MEDIAINFO_MACROBLOCKS
-
-//---------------------------------------------------------------------------
 void MediaInfo_Config_MediaInfo::File_GrowingFile_Delay_Set (float64 NewValue)
 {
     CriticalSectionLocker CSL(CS);
@@ -3035,50 +2143,6 @@ bool MediaInfo_Config_MediaInfo::File_Mmsh_Describe_Only_Get ()
     return Temp;
 }
 #endif //defined(MEDIAINFO_LIBMMS_YES)
-
-//---------------------------------------------------------------------------
-void MediaInfo_Config_MediaInfo::File_Eia608_DisplayEmptyStream_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    File_Eia608_DisplayEmptyStream=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::File_Eia608_DisplayEmptyStream_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    bool Temp=File_Eia608_DisplayEmptyStream;
-    return Temp;
-}
-
-//---------------------------------------------------------------------------
-void MediaInfo_Config_MediaInfo::File_Eia708_DisplayEmptyStream_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    File_Eia708_DisplayEmptyStream=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::File_Eia708_DisplayEmptyStream_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    bool Temp=File_Eia708_DisplayEmptyStream;
-    return Temp;
-}
-
-//---------------------------------------------------------------------------
-#if defined(MEDIAINFO_AC3_YES)
-void MediaInfo_Config_MediaInfo::File_Ac3_IgnoreCrc_Set (bool NewValue)
-{
-    CriticalSectionLocker CSL(CS);
-    File_Ac3_IgnoreCrc=NewValue;
-}
-
-bool MediaInfo_Config_MediaInfo::File_Ac3_IgnoreCrc_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    bool Temp=File_Ac3_IgnoreCrc;
-    return Temp;
-}
-#endif //defined(MEDIAINFO_AC3_YES)
 
 //***************************************************************************
 // Analysis internal

@@ -24,25 +24,8 @@
 
 //---------------------------------------------------------------------------
 #include "ZenLib/Utils.h"
-#if defined(MEDIAINFO_EBUCORE_YES)
-    #include "MediaInfo/Export/Export_EbuCore.h"
-#endif //defined(MEDIAINFO_EBUCORE_YES)
-#if defined(MEDIAINFO_FIMS_YES)
-    #include "MediaInfo/Export/Export_Fims.h"
-#endif //defined(MEDIAINFO_EBUCORE_YES)
-#if defined(MEDIAINFO_MPEG7_YES)
-    #include "MediaInfo/Export/Export_Mpeg7.h"
-#endif //defined(MEDIAINFO_MPEG7_YES)
-#if defined(MEDIAINFO_REVTMD_YES)
-    #include "MediaInfo/Export/Export_reVTMD.h"
-#endif //defined(MEDIAINFO_REVTMD_YES)
-#if defined(MEDIAINFO_PBCORE_YES)
-    #include "MediaInfo/Export/Export_PBCore.h"
-    #include "MediaInfo/Export/Export_PBCore2.h"
-#endif //defined(MEDIAINFO_PBCORE_YES)
 #include "MediaInfo/MediaInfo_Internal.h"
 #include "MediaInfo/File__Analyze.h"
-#include "base64.h"
 //---------------------------------------------------------------------------
 
 namespace MediaInfoLib
@@ -106,39 +89,6 @@ Ztring MediaInfo_Internal::Inform()
                 return Ztring();
         }
     #endif //MEDIAINFO_TRACE
-
-    #if defined(MEDIAINFO_EBUCORE_YES)
-        if (MediaInfoLib::Config.Inform_Get()==__T("EBUCore_1.5"))
-            return Export_EbuCore().Transform(*this, Export_EbuCore::Version_1_5);
-        if (MediaInfoLib::Config.Inform_Get()==__T("EBUCore_1.6"))
-            return Export_EbuCore().Transform(*this, Export_EbuCore::Version_1_6);
-        if (MediaInfoLib::Config.Inform_Get()==__T("EBUCore"))
-            return Export_EbuCore().Transform(*this);
-    #endif //defined(MEDIAINFO_EBUCORE_YES)
-    #if defined(MEDIAINFO_EBUCORE_YES)
-        if (MediaInfoLib::Config.Inform_Get()==__T("FIMS_1.1"))
-            return Export_Fims().Transform(*this, Export_Fims::Version_1_1);
-        if (MediaInfoLib::Config.Inform_Get()==__T("FIMS_1.2"))
-            return Export_Fims().Transform(*this, Export_Fims::Version_1_2);
-        if (MediaInfoLib::Config.Inform_Get()==__T("FIMS_1.3"))
-            return Export_Fims().Transform(*this, Export_Fims::Version_1_3);
-        if (MediaInfoLib::Config.Inform_Get()==__T("FIMS"))
-            return Export_Fims().Transform(*this);
-    #endif //defined(MEDIAINFO_FIMS_YES)
-    #if defined(MEDIAINFO_MPEG7_YES)
-        if (MediaInfoLib::Config.Inform_Get()==__T("MPEG-7"))
-            return Export_Mpeg7().Transform(*this);
-    #endif //defined(MEDIAINFO_MPEG7_YES)
-    #if defined(MEDIAINFO_PBCORE_YES)
-        if (MediaInfoLib::Config.Inform_Get()==__T("PBCore") || MediaInfoLib::Config.Inform_Get()==__T("PBCore_1.2"))
-            return Export_PBCore().Transform(*this);
-        if (MediaInfoLib::Config.Inform_Get()==__T("PBCore2") || MediaInfoLib::Config.Inform_Get()==__T("PBCore_2.0"))
-            return Export_PBCore2().Transform(*this);
-    #endif //defined(MEDIAINFO_PBCORE_YES)
-    #if defined(MEDIAINFO_REVTMD_YES)
-        if (MediaInfoLib::Config.Inform_Get()==__T("reVTMD"))
-            return __T("reVTMD is disabled due to its non-free licensing."); //return Export_reVTMD().Transform(*this);
-    #endif //defined(MEDIAINFO_REVTMD_YES)
 
     #if defined(MEDIAINFO_CUSTOM_YES)
 
@@ -859,8 +809,6 @@ Ztring &MediaInfo_Internal::Xml_Content_Escape_Modifying (Ztring &Content, size_
                             Pos+=5;
                             */
                             string Content_Utf8=Content_Save.To_UTF8(); //TODO: shouldn't we never convert to Unicode?
-                            string Content_Base64=Base64::encode(Content_Utf8);
-                            Content.From_UTF8(Content_Base64);
                             Modified=1; //Base64
                             Pos=Content.size(); //End
                         }

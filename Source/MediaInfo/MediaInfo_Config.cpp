@@ -133,22 +133,11 @@ const ZtringListList EmptyZtringListList_Const; //Use it when we can't return a 
 //---------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------
-void MediaInfo_Config_CodecID_General_Mpeg4   (InfoMap &Info);
 void MediaInfo_Config_CodecID_Video_Matroska  (InfoMap &Info);
-void MediaInfo_Config_CodecID_Video_Mpeg4     (InfoMap &Info);
-void MediaInfo_Config_CodecID_Video_Ogg       (InfoMap &Info);
-void MediaInfo_Config_CodecID_Video_Real      (InfoMap &Info);
 void MediaInfo_Config_CodecID_Video_Riff      (InfoMap &Info);
 void MediaInfo_Config_CodecID_Audio_Matroska  (InfoMap &Info);
-void MediaInfo_Config_CodecID_Audio_Mpeg4     (InfoMap &Info);
-void MediaInfo_Config_CodecID_Audio_Ogg       (InfoMap &Info);
-void MediaInfo_Config_CodecID_Audio_Real      (InfoMap &Info);
 void MediaInfo_Config_CodecID_Audio_Riff      (InfoMap &Info);
 void MediaInfo_Config_CodecID_Text_Matroska   (InfoMap &Info);
-void MediaInfo_Config_CodecID_Text_Mpeg4      (InfoMap &Info);
-void MediaInfo_Config_CodecID_Text_Riff       (InfoMap &Info);
-void MediaInfo_Config_CodecID_Other_Mpeg4     (InfoMap &Info);
-void MediaInfo_Config_Codec                   (InfoMap &Info);
 void MediaInfo_Config_DefaultLanguage         (Translation &Info);
 void MediaInfo_Config_Iso639_1                (InfoMap &Info);
 void MediaInfo_Config_Iso639_2                (InfoMap &Info);
@@ -161,10 +150,6 @@ void MediaInfo_Config_Image                   (ZtringListList &Info);
 void MediaInfo_Config_Menu                    (ZtringListList &Info);
 void MediaInfo_Config_Summary                 (ZtringListList &Info);
 void MediaInfo_Config_Format                  (InfoMap &Info);
-void MediaInfo_Config_Library_DivX            (InfoMap &Info);
-void MediaInfo_Config_Library_XviD            (InfoMap &Info);
-void MediaInfo_Config_Library_MainConcept_Avc (InfoMap &Info);
-void MediaInfo_Config_Library_VorbisCom       (InfoMap &Info);
 //---------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------
@@ -1781,24 +1766,12 @@ InfoMap &MediaInfo_Config::Format_Get ()
 //---------------------------------------------------------------------------
 const Ztring &MediaInfo_Config::Codec_Get (const Ztring &Value, infocodec_t KindOfCodecInfo)
 {
-    //Loading codec table if not yet done
-    CS.Enter();
-    if (Codec.empty())
-        MediaInfo_Config_Codec(Codec);
-    CS.Leave();
-
     return Codec.Get(Value, KindOfCodecInfo);
 }
 
 //---------------------------------------------------------------------------
 const Ztring &MediaInfo_Config::Codec_Get (const Ztring &Value, infocodec_t KindOfCodecInfo, stream_t KindOfStream)
 {
-    //Loading codec table if not yet done
-    CS.Enter();
-    if (Codec.empty())
-        MediaInfo_Config_Codec(Codec);
-    CS.Leave();
-
     //Transform to text
     Ztring KindOfStreamS;
     switch (KindOfStream)
@@ -1830,7 +1803,6 @@ const Ztring &MediaInfo_Config::CodecID_Get (stream_t KindOfStream, infocodecid_
             case Stream_General :
                                     switch (Format)
                                     {
-                                        case InfoCodecID_Format_Mpeg4 : MediaInfo_Config_CodecID_General_Mpeg4(CodecID[Format][KindOfStream]); break;
                                         default: ;
                                     }
                                     break;
@@ -1838,8 +1810,6 @@ const Ztring &MediaInfo_Config::CodecID_Get (stream_t KindOfStream, infocodecid_
                                     switch (Format)
                                     {
                                         case InfoCodecID_Format_Matroska : MediaInfo_Config_CodecID_Video_Matroska(CodecID[Format][KindOfStream]); break;
-                                        case InfoCodecID_Format_Mpeg4    : MediaInfo_Config_CodecID_Video_Mpeg4(CodecID[Format][KindOfStream]); break;
-                                        case InfoCodecID_Format_Real     : MediaInfo_Config_CodecID_Video_Real(CodecID[Format][KindOfStream]); break;
                                         case InfoCodecID_Format_Riff     : MediaInfo_Config_CodecID_Video_Riff(CodecID[Format][KindOfStream]); break;
                                         default: ;
                                     }
@@ -1848,8 +1818,6 @@ const Ztring &MediaInfo_Config::CodecID_Get (stream_t KindOfStream, infocodecid_
                                     switch (Format)
                                     {
                                         case InfoCodecID_Format_Matroska : MediaInfo_Config_CodecID_Audio_Matroska(CodecID[Format][KindOfStream]); break;
-                                        case InfoCodecID_Format_Mpeg4    : MediaInfo_Config_CodecID_Audio_Mpeg4(CodecID[Format][KindOfStream]); break;
-                                        case InfoCodecID_Format_Real     : MediaInfo_Config_CodecID_Audio_Real(CodecID[Format][KindOfStream]); break;
                                         case InfoCodecID_Format_Riff     : MediaInfo_Config_CodecID_Audio_Riff(CodecID[Format][KindOfStream]); break;
                                         default: ;
                                     }
@@ -1858,15 +1826,12 @@ const Ztring &MediaInfo_Config::CodecID_Get (stream_t KindOfStream, infocodecid_
                                     switch (Format)
                                     {
                                         case InfoCodecID_Format_Matroska : MediaInfo_Config_CodecID_Text_Matroska(CodecID[Format][KindOfStream]); break;
-                                        case InfoCodecID_Format_Mpeg4    : MediaInfo_Config_CodecID_Text_Mpeg4(CodecID[Format][KindOfStream]); break;
-                                        case InfoCodecID_Format_Riff     : MediaInfo_Config_CodecID_Text_Riff(CodecID[Format][KindOfStream]); break;
                                         default: ;
                                     }
                                     break;
             case Stream_Other   :
                                     switch (Format)
                                     {
-                                        case InfoCodecID_Format_Mpeg4    : MediaInfo_Config_CodecID_Other_Mpeg4(CodecID[Format][KindOfStream]); break;
                                         default: ;
                                     }
                                     break;
@@ -1883,20 +1848,7 @@ const Ztring &MediaInfo_Config::Library_Get (infolibrary_format_t Format, const 
     if (Format>=InfoLibrary_Format_Max)
         return EmptyString_Get();
 
-    CS.Enter();
-    if (Library[Format].empty())
-    {
-        switch (Format)
-        {
-            case InfoLibrary_Format_DivX : MediaInfo_Config_Library_DivX(Library[Format]); break;
-            case InfoLibrary_Format_XviD : MediaInfo_Config_Library_XviD(Library[Format]); break;
-            case InfoLibrary_Format_MainConcept_Avc : MediaInfo_Config_Library_MainConcept_Avc(Library[Format]); break;
-            case InfoLibrary_Format_VorbisCom : MediaInfo_Config_Library_VorbisCom(Library[Format]); break;
-            default: ;
-        }
-    }
-    CS.Leave();
-    return Library[Format].Get(Value, KindOfLibraryInfo);
+    return EmptyString_Get();
 }
 
 //---------------------------------------------------------------------------
@@ -2085,9 +2037,6 @@ Ztring MediaInfo_Config::Info_Tags_Get () const
 Ztring MediaInfo_Config::Info_Codecs_Get ()
 {
     CriticalSectionLocker CSL(CS);
-
-    //Loading
-    MediaInfo_Config_Codec(Codec);
 
     //Building
     Ztring ToReturn;

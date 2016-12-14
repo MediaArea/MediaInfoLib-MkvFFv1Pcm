@@ -23,7 +23,6 @@
 #include <iostream>
 #include <iomanip>
 #include <cstring>
-#include "base64.h"
 
 namespace MediaInfoLib
 {
@@ -473,7 +472,6 @@ static void Xml_Content_Escape(const char* Content, size_t Size, std::string& To
             default:
                 if (C<0x20)
                 {
-                    ToReturn = Base64::encode(Content);
                     Pos = ToReturn.size(); //End
                 }
         }

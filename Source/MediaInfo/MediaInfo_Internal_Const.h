@@ -60,8 +60,6 @@ enum infocodecid_t
 enum infocodecid_format_t
 {
     InfoCodecID_Format_Matroska,    ///<
-    InfoCodecID_Format_Mpeg4,       ///<
-    InfoCodecID_Format_Real,        ///<
     InfoCodecID_Format_Riff,        ///<
     InfoCodecID_Format_Max
 };
@@ -101,10 +99,6 @@ enum infolibrary_t
 /// @brief Used with Library info (Format type part)
 enum infolibrary_format_t
 {
-    InfoLibrary_Format_DivX,        ///<
-    InfoLibrary_Format_XviD,        ///<
-    InfoLibrary_Format_MainConcept_Avc, ///<
-    InfoLibrary_Format_VorbisCom,   ///<
     InfoLibrary_Format_Max
 };
 

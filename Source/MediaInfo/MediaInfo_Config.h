@@ -331,7 +331,6 @@ private :
     InfoMap         CodecID[InfoCodecID_Format_Max][Stream_Max];
     InfoMap         Format;
     InfoMap         Codec;
-    InfoMap         Library[InfoLibrary_Format_Max];
     InfoMap         Iso639_1;
     InfoMap         Iso639_2;
     ZtringListList  Info[Stream_Max]; //General info

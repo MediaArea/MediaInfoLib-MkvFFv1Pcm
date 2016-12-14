@@ -18,11 +18,6 @@
 #if MEDIAINFO_IBIUSAGE
     #include "MediaInfo/Multiple/File_Ibi_Creation.h"
 #endif //MEDIAINFO_IBIUSAGE
-#include "tinyxml2.h"
-#if MEDIAINFO_AES
-    #include <aescpp.h>
-#endif //MEDIAINFO_AES
-#include "MediaInfo/HashWrapper.h"
 #include <cstring>
 //---------------------------------------------------------------------------
 
@@ -1274,7 +1269,6 @@ protected :
     //***************************************************************************
 
     bool FileHeader_Begin_0x000001();
-    bool FileHeader_Begin_XML(tinyxml2::XMLDocument &Document);
     bool Synchronize_0x000001();
 public:
     void TestContinuousFileNames(size_t CountOfFiles=24, Ztring FileExtension=Ztring(), bool SkipComputeDelay=false);
@@ -1406,20 +1400,6 @@ public :
     bool    PES_FirstByte_Value;
 
     int64u  Unsynch_Frame_Count;
-
-    //AES
-    #if MEDIAINFO_AES
-        AESdecrypt* AES;
-        int8u*      AES_IV;
-        int8u*      AES_Decrypted;
-        size_t      AES_Decrypted_Size;
-    #endif //MEDIAINFO_AES
-
-    //Hash
-    #if MEDIAINFO_HASH
-        HashWrapper*        Hash;
-        int64u              Hash_ParseUpTo;
-    #endif //MEDIAINFO_HASH
 
     #if MEDIAINFO_SEEK
     private:

@@ -29,7 +29,6 @@
 #endif //MEDIAINFO_IBIUSAGE
 #include <cstring>
 using namespace std;
-using namespace tinyxml2;
 #if MEDIAINFO_EVENTS
     #include "MediaInfo/MediaInfo_Events_Internal.h"
 #endif //MEDIAINFO_EVENTS
@@ -299,20 +298,6 @@ File__Analyze::File__Analyze ()
     //Events data
     PES_FirstByte_IsAvailable=false;
 
-    //AES
-    #if MEDIAINFO_AES
-        AES=NULL;
-        AES_IV=NULL;
-        AES_Decrypted=NULL;
-        AES_Decrypted_Size=0;
-    #endif //MEDIAINFO_AES
-
-    //Hash
-    #if MEDIAINFO_HASH
-        Hash=NULL;
-        Hash_ParseUpTo=0;
-    #endif //MEDIAINFO_HASH
-
     Unsynch_Frame_Count=(int64u)-1;
     #if MEDIAINFO_IBIUSAGE
         Ibi_SynchronizationOffset_Current=0;
@@ -334,13 +319,6 @@ File__Analyze::~File__Analyze ()
     //BitStream
     delete BS; //BS=NULL;
     delete BT; //BS=NULL;
-
-    //AES
-    #if MEDIAINFO_AES
-        delete AES; //AES=NULL;
-        delete AES_IV; //AES_IV=NULL;
-        delete AES_Decrypted; //AES_Decrypted=NULL;
-    #endif //MEDIAINFO_AES
 
     //Hash
     #if MEDIAINFO_HASH
@@ -552,44 +530,6 @@ void File__Analyze::Open_Buffer_Continue (const int8u* ToAdd, size_t ToAdd_Size)
         }
     #endif //MEDIAINFO_HASH
 
-    //AES
-    #if MEDIAINFO_AES
-        if (ToAdd_Size)
-        {
-            if (!IsSub && !Buffer_Temp_Size && File_Offset==Config->File_Current_Offset
-             && Config->Encryption_Format_Get()==Encryption_Format_Aes
-             && Config->Encryption_Key_Get().size()==16
-             && Config->Encryption_Method_Get()==Encryption_Method_Segment
-             && Config->Encryption_Mode_Get()==Encryption_Mode_Cbc
-             && Config->Encryption_Padding_Get()==Encryption_Padding_Pkcs7
-             && Config->Encryption_InitializationVector_Get()=="Sequence number")
-            {
-                delete AES; AES=new AESdecrypt;
-                AES->key128((const unsigned char*)Config->Encryption_Key_Get().c_str());
-                AES_IV=new int8u[16];
-                int128u2BigEndian(AES_IV, int128u((int64u)Config->File_Names_Pos-1));
-            }
-            if (AES)
-            {
-                if (AES_Decrypted_Size<ToAdd_Size)
-                {
-                    delete AES_Decrypted; AES_Decrypted=new int8u[ToAdd_Size*2];
-                    AES_Decrypted_Size=ToAdd_Size*2;
-                }
-                AES->cbc_decrypt(ToAdd, AES_Decrypted, (int)ToAdd_Size, AES_IV);    //TODO: handle the case where ToAdd_Size is more than 2GB
-                if (File_Offset+Buffer_Size+ToAdd_Size>=Config->File_Current_Size && ToAdd_Size)
-                {
-                    int8u LastByte=AES_Decrypted[ToAdd_Size-1];
-                    ToAdd_Size-=LastByte;
-                    if (Config->File_Names_Pos && Config->File_Names_Pos-1<Config->File_Sizes.size())
-                        Config->File_Sizes[Config->File_Names_Pos-1]-=LastByte;
-                    Config->File_Current_Size-=LastByte;
-                }
-                ToAdd=AES_Decrypted;
-            }
-        }
-    #endif //MEDIAINFO_AES
-
     //Integrity
     if (Status[IsFinished])
         return;
@@ -606,20 +546,6 @@ void File__Analyze::Open_Buffer_Continue (const int8u* ToAdd, size_t ToAdd_Size)
             return; //No need of this piece of data
         }
     }
-
-    #if MEDIAINFO_HASH
-        //Hash parsing only
-        if (Hash_ParseUpTo>File_Offset+Buffer_Size+ToAdd_Size)
-        {
-            File_Offset+=ToAdd_Size;
-            return; //No need of this piece of data
-        }
-        if (Hash_ParseUpTo>File_Offset && Hash_ParseUpTo<=File_Offset+ToAdd_Size)
-        {
-            Buffer_Offset+=(size_t)(Hash_ParseUpTo-File_Offset);
-            Hash_ParseUpTo=0;
-        }
-    #endif //MEDIAINFO_HASH
 
     if (Buffer_Temp_Size) //There is buffered data from before
     {
@@ -1657,61 +1583,6 @@ bool File__Analyze::FileHeader_Begin_0x000001()
     Buffer_Offset=0;
 
     //All should be OK...
-    return true;
-}
-
-//---------------------------------------------------------------------------
-bool File__Analyze::FileHeader_Begin_XML(XMLDocument &Document)
-{
-    //Element_Size
-    if (!IsSub && (File_Size<32 || File_Size>16*1024*1024))
-    {
-        Reject();
-        return false; //XML files are not expected to be so big
-    }
-
-    //Element_Size
-    if (!IsSub && Buffer_Size<File_Size)
-    {
-        Element_WaitForMoreData();
-        return false; //Must wait for more data
-    }
-
-    //XML header
-    Ztring Data;
-         if ((Buffer[0]=='<'
-           && Buffer[1]==0x00)
-          || (Buffer[0]==0xFF
-           && Buffer[1]==0xFE
-           && Buffer[2]=='<'
-           && Buffer[3]==0x00))
-        Data.From_UTF16LE((const char*)Buffer, Buffer_Size);
-    else if ((Buffer[0]==0x00
-           && Buffer[1]=='<')
-          || (Buffer[0]==0xFE
-           && Buffer[1]==0xFF
-           && Buffer[2]==0x00
-           && Buffer[3]=='<'))
-        Data.From_UTF16BE((const char*)Buffer, Buffer_Size);
-    else if ((Buffer[0]=='<')
-          || (Buffer[0]==0xEF
-           && Buffer[1]==0xBB
-           && Buffer[2]==0xBF
-           && Buffer[3]=='<'))
-        Data.From_UTF8((const char*)Buffer, Buffer_Size);
-    else
-    {
-        Reject();
-        return false;
-    }
-
-    string DataUTF8=Data.To_UTF8();
-    if (Document.Parse(DataUTF8.c_str()))
-    {
-        Reject();
-        return false;
-    }
-
     return true;
 }
 

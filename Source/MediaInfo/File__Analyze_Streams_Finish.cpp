@@ -28,9 +28,6 @@
 #include "ZenLib/FileName.h"
 #include "MediaInfo/File__Analyze.h"
 #include "MediaInfo/MediaInfo_Config_MediaInfo.h"
-#if MEDIAINFO_IBI
-    #include "MediaInfo/Multiple/File_Ibi.h"
-#endif //MEDIAINFO_IBI
 #if MEDIAINFO_FIXITY
     #ifndef WINDOWS
     //ZenLib has File::Copy only for Windows for the moment. //TODO: support correctly (including meta)
@@ -851,39 +848,6 @@ void File__Analyze::Streams_Finish_InterStreams()
             TextBitRate_Ratio   =1;
             TextBitRate_Minus   =0;
         }
-        if (Get(Stream_General, 0, __T("Format"))==__T("MPEG-TS"))
-        {
-            GeneralBitRate_Ratio=0.98;
-            GeneralBitRate_Minus=0;
-            VideoBitRate_Ratio  =0.97;
-            VideoBitRate_Minus  =0;
-            AudioBitRate_Ratio  =0.96;
-            AudioBitRate_Minus  =0;
-            TextBitRate_Ratio   =0.96;
-            TextBitRate_Minus   =0;
-        }
-        if (Get(Stream_General, 0, __T("Format"))==__T("MPEG-PS"))
-        {
-            GeneralBitRate_Ratio=0.99;
-            GeneralBitRate_Minus=0;
-            VideoBitRate_Ratio  =0.99;
-            VideoBitRate_Minus  =0;
-            AudioBitRate_Ratio  =0.99;
-            AudioBitRate_Minus  =0;
-            TextBitRate_Ratio   =0.99;
-            TextBitRate_Minus   =0;
-        }
-        if (MediaInfoLib::Config.Format_Get(Retrieve(Stream_General, 0, General_Format), InfoFormat_KindofFormat)==__T("MPEG-4"))
-        {
-            GeneralBitRate_Ratio=1;
-            GeneralBitRate_Minus=0;
-            VideoBitRate_Ratio  =1;
-            VideoBitRate_Minus  =0;
-            AudioBitRate_Ratio  =1;
-            AudioBitRate_Minus  =0;
-            TextBitRate_Ratio   =1;
-            TextBitRate_Minus   =0;
-        }
         if (Get(Stream_General, 0, __T("Format"))==__T("Matroska"))
         {
             GeneralBitRate_Ratio=0.99;
@@ -894,17 +858,6 @@ void File__Analyze::Streams_Finish_InterStreams()
             AudioBitRate_Minus  =0;
             TextBitRate_Ratio   =0.99;
             TextBitRate_Minus   =0;
-        }
-        if (Get(Stream_General, 0, __T("Format"))==__T("MXF"))
-        {
-            GeneralBitRate_Ratio=1;
-            GeneralBitRate_Minus=1000;
-            VideoBitRate_Ratio  =1.00;
-            VideoBitRate_Minus  =1000;
-            AudioBitRate_Ratio  =1.00;
-            AudioBitRate_Minus  =1000;
-            TextBitRate_Ratio   =1.00;
-            TextBitRate_Minus   =1000;
         }
 
         //Testing
