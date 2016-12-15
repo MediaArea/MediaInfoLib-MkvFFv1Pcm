@@ -41,40 +41,6 @@ lib@MediaInfoLib_LibName@_la_SOURCES = \
  ../../../Source/MediaInfoDLL/MediaInfoDLL.h \
  ../../../Source/MediaInfoDLL/MediaInfoDLL_Static.h
 
-if COMPILE_AES
-lib@MediaInfoLib_LibName@_la_SOURCES += \
-                       ../../../Source/ThirdParty/aes-gladman/aes_modes.c \
-                       ../../../Source/ThirdParty/aes-gladman/aescrypt.c \
-                       ../../../Source/ThirdParty/aes-gladman/aeskey.c \
-                       ../../../Source/ThirdParty/aes-gladman/aestab.c
-endif
-
-if COMPILE_MD5
-lib@MediaInfoLib_LibName@_la_SOURCES += \
-                       ../../../Source/ThirdParty/md5/md5.c
-endif
-
-if COMPILE_SHA1
-lib@MediaInfoLib_LibName@_la_SOURCES += \
-                       ../../../Source/ThirdParty/sha1-gladman/sha1.c
-endif
-
-if COMPILE_SHA2
-lib@MediaInfoLib_LibName@_la_SOURCES += \
-                       ../../../Source/ThirdParty/sha2-gladman/sha2.c
-endif
-
-if COMPILE_HMAC
-lib@MediaInfoLib_LibName@_la_SOURCES += \
-                       ../../../Source/ThirdParty/hmac-gladman/hmac.c \
-                       ../../../Source/ThirdParty/hmac-gladman/pwd2key.c
-endif
-
-if COMPILE_TINYXML2
-lib@MediaInfoLib_LibName@_la_SOURCES += \
-                       ../../../Source/ThirdParty/tinyxml2/tinyxml2.cpp
-endif
-
 lib@MediaInfoLib_LibName@_la_LDFLAGS     = -no-undefined -version-info 0:0:0
 
 pkgconfigdir = $(libdir)/pkgconfig
