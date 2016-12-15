@@ -35,16 +35,7 @@ BuildRequires:  doxygen
 BuildRequires:  libtool
 BuildRequires:  automake
 BuildRequires:  autoconf
-%if 0%{?rhel_version} || 0%{?centos_version}
-%if 0%{?rhel_version} > 599
 BuildRequires:  libcurl-devel
-%endif
-%if 0%{?centos_version} > 599
-BuildRequires:  libcurl-devel
-%endif
-%else
-BuildRequires:  libcurl-devel
-%endif
 
 %description
 MediaInfo is a convenient unified display of the most relevant technical
@@ -138,7 +129,6 @@ for development.
 
 %prep
 %setup -q -n MediaInfoLib
-cp           Release/ReadMe_DLL_Linux.txt ReadMe.txt
 mv           History_DLL.txt History.txt
 sed -i 's/.$//' *.txt Source/Example/*
 
@@ -160,20 +150,7 @@ popd
 cp Source/Doc/*.html ./
 
 pushd Project/GNU/Library
-%if 0%{?rhel_version} || 0%{?centos_version}
-%if 0%{?rhel_version} < 599
-%configure --enable-shared --disable-static --enable-visibility
-%else
 %configure --enable-shared --disable-static --enable-visibility --with-libcurl
-%endif
-%if 0%{?centos_version} < 599
-%configure --enable-shared --disable-static --enable-visibility
-%else
-%configure --enable-shared --disable-static --enable-visibility --with-libcurl
-%endif
-%else
-%configure --enable-shared --disable-static --enable-visibility --with-libcurl
-%endif
 
 make %{?_smp_mflags}
 popd
@@ -213,11 +190,6 @@ rm -f %{buildroot}%{_libdir}/%{name_without_0_ending}.la
 %doc License.html
 %endif
 %{_libdir}/%{name_without_0_ending}.so.*
-
-%if 0%{?rhel} == 5
-%exclude %{_usr}/lib/debug
-%exclude %{_usr}/src/debug
-%endif
 
 %files     -n %{name_without_0_ending}-doc
 %defattr(-,root,root,-)
