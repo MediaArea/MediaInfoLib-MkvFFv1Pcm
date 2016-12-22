@@ -101,27 +101,6 @@
     #if !defined (MEDIAINFO_LIBMMS_NO) && !defined (MEDIAINFO_LIBMM_YES)
         #define MEDIAINFO_LIBMMS_NO
     #endif
-    #if !defined (MEDIAINFO_DVDIF_ANALYZE_NO) && !defined (MEDIAINFO_DVDIF_ANALYZE_YES)
-        #define MEDIAINFO_DVDIF_ANALYZE_NO
-    #endif
-    #if !defined (MEDIAINFO_MPEGTS_DUPLICATE_NO) && !defined (MEDIAINFO_MPEGTS_DUPLICATE_YES)
-        #define MEDIAINFO_MPEGTS_DUPLICATE_NO
-    #endif
-    #if !defined (MEDIAINFO_READTHREAD_NO) && !defined (MEDIAINFO_READTHREAD_YES)
-        #define MEDIAINFO_READTHREAD_NO
-    #endif
-    #if !defined (MEDIAINFO_MD5_NO) && !defined (MEDIAINFO_MD5_YES)
-        #define MEDIAINFO_MD5_NO
-    #endif
-    #if !defined (MEDIAINFO_SHA1_NO) && !defined (MEDIAINFO_SHA1_YES)
-        #define MEDIAINFO_SHA1_NO
-    #endif
-    #if !defined (MEDIAINFO_SHA2_NO) && !defined (MEDIAINFO_SHA2_YES)
-        #define MEDIAINFO_SHA2_NO
-    #endif
-    #if !defined (MEDIAINFO_AES_NO) && !defined (MEDIAINFO_AES_YES)
-        #define MEDIAINFO_AES_NO
-    #endif
     #if !defined (MEDIAINFO_EXPORT_NO) && !defined (MEDIAINFO_EXPORT_YES)
         #define MEDIAINFO_EXPORT_NO
     #endif
@@ -242,36 +221,6 @@
         #define MEDIAINFO_ADVANCED2 0
     #endif
 #endif
-#if !defined(MEDIAINFO_MD5)
-    #if defined(MEDIAINFO_MD5_NO) && defined(MEDIAINFO_MD5_YES)
-        #undef MEDIAINFO_MD5_NO //MEDIAINFO_MD5_YES has priority
-    #endif
-    #if defined(MEDIAINFO_MD5_NO)
-        #define MEDIAINFO_MD5 0
-    #else
-        #define MEDIAINFO_MD5 1
-    #endif
-#endif
-#if !defined(MEDIAINFO_SHA1)
-    #if defined(MEDIAINFO_SHA1_NO) && defined(MEDIAINFO_SHA1_YES)
-        #undef MEDIAINFO_SHA1_NO //MEDIAINFO_SHA1_YES has priority
-    #endif
-    #if defined(MEDIAINFO_SHA1_NO)
-        #define MEDIAINFO_SHA1 0
-    #else
-        #define MEDIAINFO_SHA1 1
-    #endif
-#endif
-#if !defined(MEDIAINFO_SHA2)
-    #if defined(MEDIAINFO_SHA2_NO) && defined(MEDIAINFO_SHA2_YES)
-        #undef MEDIAINFO_SHA2_NO //MEDIAINFO_SHA2_YES has priority
-    #endif
-    #if defined(MEDIAINFO_SHA2_NO)
-        #define MEDIAINFO_SHA2 0
-    #else
-        #define MEDIAINFO_SHA2 1
-    #endif
-#endif
 #if !defined(MEDIAINFO_DEMUX)
     #if !defined(MEDIAINFO_DEMUX_NO) && !defined(MEDIAINFO_DEMUX_YES) && !MEDIAINFO_EVENTS
         #define MEDIAINFO_DEMUX_NO //MEDIAINFO_DEMUX is disabled by default if MEDIAINFO_EVENTS is set to 0
@@ -374,21 +323,6 @@
 #endif
 #if !defined(MEDIAINFO_EXPORT_NO) && !defined(MEDIAINFO_CUSTOM_NO) && !defined(MEDIAINFO_CUSTOM_YES)
     #define MEDIAINFO_CUSTOM_YES
-#endif
-#if !defined(MEDIAINFO_EXPORT_NO) && !defined(MEDIAINFO_EBUCORE_NO) && !defined(MEDIAINFO_EBUCORE_YES)
-    #define MEDIAINFO_EBUCORE_YES
-#endif
-#if !defined(MEDIAINFO_EXPORT_NO) && !defined(MEDIAINFO_FIMS_NO) && !defined(MEDIAINFO_FIMS_YES)
-    #define MEDIAINFO_FIMS_YES
-#endif
-#if !defined(MEDIAINFO_EXPORT_NO) && !defined(MEDIAINFO_MPEG7_NO) && !defined(MEDIAINFO_MPEG7_YES)
-    #define MEDIAINFO_MPEG7_YES
-#endif
-#if !defined(MEDIAINFO_EXPORT_NO) && !defined(MEDIAINFO_PBCORE_NO) && !defined(MEDIAINFO_PBCORE_YES)
-    #define MEDIAINFO_PBCORE_YES
-#endif
-#if !defined(MEDIAINFO_EXPORT_NO) && !defined(MEDIAINFO_REVTMD_NO) && !defined(MEDIAINFO_REVTMD_YES)
-    #define MEDIAINFO_REVTMD_YES
 #endif
 
 //---------------------------------------------------------------------------

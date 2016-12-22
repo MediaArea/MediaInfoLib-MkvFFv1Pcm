@@ -180,14 +180,6 @@ void MediaInfo_Config::Init()
         InitDataNotRepeated_Occurences=(int64u)-1; //Disabled by default
         InitDataNotRepeated_GiveUp=false;
     #endif //MEDIAINFO_ADVANCED
-    MpegTs_MaximumOffset=64*1024*1024;
-    MpegTs_MaximumScanDuration=30000000000LL;
-    MpegTs_ForceStreamDisplay=false;
-    #if MEDIAINFO_ADVANCED
-        MpegTs_VbrDetection_Delta=0;
-        MpegTs_VbrDetection_Occurences=4;
-        MpegTs_VbrDetection_GiveUp=false;
-    #endif //MEDIAINFO_ADVANCED
     Complete=0;
     BlockMethod=0;
     Internet=0;
@@ -773,84 +765,6 @@ Ztring MediaInfo_Config::Option (const String &Option, const String &Value_Raw)
         #else // MEDIAINFO_ADVANCED
             return __T("advanced features are disabled due to compilation options");
         #endif // MEDIAINFO_ADVANCED
-    }
-    else if (Option_Lower==__T("mpegts_maximumoffset"))
-    {
-        MpegTs_MaximumOffset_Set(Value==__T("-1")?(int64u)-1:((Ztring*)&Value)->To_int64u());
-        return Ztring();
-    }
-    else if (Option_Lower==__T("mpegts_maximumoffset_get"))
-    {
-        return MpegTs_MaximumOffset_Get()==(int64u)-1?Ztring(__T("-1")):Ztring::ToZtring(MpegTs_MaximumOffset_Get());
-    }
-    else if (Option_Lower==__T("mpegts_vbrdetection_delta"))
-    {
-        #if MEDIAINFO_ADVANCED
-            MpegTs_VbrDetection_Delta_Set(Value.To_float64());
-            return Ztring();
-        #else // MEDIAINFO_ADVANCED
-            return __T("advanced features are disabled due to compilation options");
-        #endif // MEDIAINFO_ADVANCED
-    }
-    else if (Option_Lower==__T("mpegts_vbrdetection_delta_get"))
-    {
-        #if MEDIAINFO_ADVANCED
-            return Ztring::ToZtring(MpegTs_VbrDetection_Delta_Get(), 9);
-        #else // MEDIAINFO_ADVANCED
-            return __T("advanced features are disabled due to compilation options");
-        #endif // MEDIAINFO_ADVANCED
-    }
-    else if (Option_Lower==__T("mpegts_vbrdetection_occurences"))
-    {
-        #if MEDIAINFO_ADVANCED
-            MpegTs_VbrDetection_Occurences_Set(Value.To_int64u());
-            return Ztring();
-        #else // MEDIAINFO_ADVANCED
-            return __T("advanced features are disabled due to compilation options");
-        #endif // MEDIAINFO_ADVANCED
-    }
-    else if (Option_Lower==__T("mpegts_vbrdetection_occurences_get"))
-    {
-        #if MEDIAINFO_ADVANCED
-            return Ztring::ToZtring(MpegTs_VbrDetection_Occurences_Get());
-        #else // MEDIAINFO_ADVANCED
-            return __T("advanced features are disabled due to compilation options");
-        #endif // MEDIAINFO_ADVANCED
-    }
-    else if (Option_Lower==__T("mpegts_vbrdetection_giveup"))
-    {
-        #if MEDIAINFO_ADVANCED
-            MpegTs_VbrDetection_GiveUp_Set(Value.To_int8u()?true:false);
-            return Ztring();
-        #else // MEDIAINFO_ADVANCED
-            return __T("advanced features are disabled due to compilation options");
-        #endif // MEDIAINFO_ADVANCED
-    }
-    else if (Option_Lower==__T("mpegts_vbrdetection_giveup_get"))
-    {
-        #if MEDIAINFO_ADVANCED
-            return MpegTs_VbrDetection_GiveUp_Get()?__T("1"):__T("0");
-        #else // MEDIAINFO_ADVANCED
-            return __T("advanced features are disabled due to compilation options");
-        #endif // MEDIAINFO_ADVANCED
-    }
-    else if (Option_Lower==__T("mpegts_maximumscanduration"))
-    {
-        MpegTs_MaximumScanDuration_Set(float64_int64s((((Ztring*)&Value)->To_float64())*1000000000));
-        return Ztring();
-    }
-    else if (Option_Lower==__T("mpegts_maximumscanduration_get"))
-    {
-        return MpegTs_MaximumScanDuration_Get()==(int64u)-1?Ztring(__T("-1")):Ztring::ToZtring(MpegTs_MaximumOffset_Get());
-    }
-    else if (Option_Lower==__T("mpegts_forcestreamdisplay"))
-    {
-        MpegTs_ForceStreamDisplay_Set(Value.To_int8u()?true:false);
-        return Ztring();
-    }
-    else if (Option_Lower==__T("mpegts_forcestreamdisplay_get"))
-    {
-        return MpegTs_ForceStreamDisplay_Get()?__T("1"):__T("0");
     }
     else if (Option_Lower==__T("maxml_streamkinds"))
     {
@@ -2138,84 +2052,6 @@ bool MediaInfo_Config::InitDataNotRepeated_GiveUp_Get ()
     return InitDataNotRepeated_GiveUp;
 }
 #endif // MEDIAINFO_ADVANCED
-
-void MediaInfo_Config::MpegTs_MaximumOffset_Set (int64u Value)
-{
-    CriticalSectionLocker CSL(CS);
-    MpegTs_MaximumOffset=Value;
-}
-
-int64u MediaInfo_Config::MpegTs_MaximumOffset_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return MpegTs_MaximumOffset;
-}
-
-void MediaInfo_Config::MpegTs_MaximumScanDuration_Set (int64u Value)
-{
-    CriticalSectionLocker CSL(CS);
-    MpegTs_MaximumScanDuration=Value;
-}
-
-int64u MediaInfo_Config::MpegTs_MaximumScanDuration_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return MpegTs_MaximumScanDuration;
-}
-
-#if MEDIAINFO_ADVANCED
-void MediaInfo_Config::MpegTs_VbrDetection_Delta_Set (float64 Value)
-{
-    CriticalSectionLocker CSL(CS);
-    MpegTs_VbrDetection_Delta=Value;
-}
-
-float64 MediaInfo_Config::MpegTs_VbrDetection_Delta_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return MpegTs_VbrDetection_Delta;
-}
-#endif // MEDIAINFO_ADVANCED
-
-#if MEDIAINFO_ADVANCED
-void MediaInfo_Config::MpegTs_VbrDetection_Occurences_Set (int64u Value)
-{
-    CriticalSectionLocker CSL(CS);
-    MpegTs_VbrDetection_Occurences=Value;
-}
-
-int64u MediaInfo_Config::MpegTs_VbrDetection_Occurences_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return MpegTs_VbrDetection_Occurences;
-}
-#endif // MEDIAINFO_ADVANCED
-
-#if MEDIAINFO_ADVANCED
-void MediaInfo_Config::MpegTs_VbrDetection_GiveUp_Set (bool Value)
-{
-    CriticalSectionLocker CSL(CS);
-    MpegTs_VbrDetection_GiveUp=Value;
-}
-
-bool MediaInfo_Config::MpegTs_VbrDetection_GiveUp_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return MpegTs_VbrDetection_GiveUp;
-}
-#endif // MEDIAINFO_ADVANCED
-
-void MediaInfo_Config::MpegTs_ForceStreamDisplay_Set (bool Value)
-{
-    CriticalSectionLocker CSL(CS);
-    MpegTs_ForceStreamDisplay=Value;
-}
-
-bool MediaInfo_Config::MpegTs_ForceStreamDisplay_Get ()
-{
-    CriticalSectionLocker CSL(CS);
-    return MpegTs_ForceStreamDisplay;
-}
 
 #if MEDIAINFO_ADVANCED
 Ztring MediaInfo_Config::MAXML_StreamKinds_Get ()

@@ -1530,58 +1530,6 @@ bool File__Analyze::FileHeader_Begin_0x000001()
     if (Buffer_Size<192*4)
         return true; //Not enough buffer for a test
 
-    //Detecting OldDirac/WAV/SWF/FLV/ELF/DPG/WM files
-    int64u Magic8=CC8(Buffer);
-    int32u Magic4=Magic8>>32;
-    int32u Magic3=Magic4>> 8;
-    int16u Magic2=Magic4>>16;
-    if (Magic8==0x4B572D4449524143LL || Magic4==0x52494646 || Magic3==0x465753 || Magic3==0x464C56 || Magic4==0x7F454C46 || Magic4==0x44504730 || Magic4==0x3026B275 || Magic2==0x4D5A || Magic4==0x1A45DFA3)
-    {
-        Reject();
-        return false;
-    }
-
-    //GXF
-    if (CC5(Buffer)==0x0000000001 && CC2(Buffer+14)==0xE1E2)
-    {
-        Reject();
-        return false;
-    }
-
-    //Detecting MPEG-4 files (ftyp/mdat/skip/free)
-    Magic4=CC4(Buffer+4);
-    switch (Magic4)
-    {
-        case 0x66747970 : //ftyp
-        case 0x6D646174 : //mdat
-        case 0x736B6970 : //skip
-        case 0x66726565 : //free
-                            Reject();
-                            return false;
-        default         :   break;
-    }
-
-    //Detect TS files, and the parser is not enough precise to detect them later
-    size_t Buffer_Offset=0;
-    while (Buffer_Offset<188 && Buffer[Buffer_Offset]!=0x47) //Look for first Sync word
-        Buffer_Offset++;
-    if (Buffer_Offset<188 && Buffer[Buffer_Offset+188]==0x47 && Buffer[Buffer_Offset+188*2]==0x47 && Buffer[Buffer_Offset+188*3]==0x47)
-    {
-        Status[IsFinished]=true;
-        return false;
-    }
-    Buffer_Offset=0;
-
-    //Detect BDAV files, and the parser is not enough precise to detect them later
-    while (Buffer_Offset<192 && CC1(Buffer+Buffer_Offset+4)!=0x47) //Look for first Sync word
-        Buffer_Offset++;
-    if (Buffer_Offset<192 && CC1(Buffer+Buffer_Offset+192+4)==0x47 && CC1(Buffer+Buffer_Offset+192*2+4)==0x47 && CC1(Buffer+Buffer_Offset+192*3+4)==0x47)
-    {
-        Status[IsFinished]=true;
-        return false;
-    }
-    Buffer_Offset=0;
-
     //All should be OK...
     return true;
 }

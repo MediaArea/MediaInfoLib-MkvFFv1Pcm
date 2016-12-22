@@ -84,7 +84,7 @@ public :
         /// @return a bitfield \n
         ///         bit 0: Is Accepted  (format is known)
         ///         bit 1: Is Filled    (main data is collected)
-        ///         bit 2: Is Updated   (some data have beed updated, example: duration for a real time MPEG-TS stream)
+        ///         bit 2: Is Updated   (some data have beed updated)
         ///         bit 3: Is Finalized (No more data is needed, will not use further data)
         ///         bit 4-15: Reserved
         ///         bit 16-31: User defined

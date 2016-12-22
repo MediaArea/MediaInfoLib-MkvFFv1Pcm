@@ -64,7 +64,7 @@ public :
         void    Event_Prepare (struct MediaInfo_Event_Generic* Event);
     #endif //MEDIAINFO_EVENTS
     #if MEDIAINFO_DEMUX
-        int8u   Demux_Level; //bit 0=frame, bit 1=container, bit 2=elementary (eg MPEG-TS), bit 3=ancillary (e.g. DTVCC), default with frame set
+        int8u   Demux_Level; //bit 0=frame, bit 1=container, bit 2=elementary, bit 3=ancillary, default with frame set
         bool    Demux_random_access;
         bool    Demux_UnpacketizeContainer;
         bool    Demux_IntermediateItemFound;
@@ -86,8 +86,8 @@ public :
     void   TS_Set(File__Analyze* Parser, ts_type Type=TS_ALL);
     void   TS_Add(int64s Ticks, ts_type Type=TS_ALL);
     void   TS_Ajust(int64s Ticks);
-    int64s Frequency_c; //Frequency of the timestamp of the container (e.g. 90000 for MPEG-PS)
-    int64s Frequency_b; //Frequency of the timestamp of the bitstream (e.g. 48000 for AC-3)
+    int64s Frequency_c; //Frequency of the timestamp of the container
+    int64s Frequency_b; //Frequency of the timestamp of the bitstream
     #if MEDIAINFO_ADVANCED2
     static const int64s NoTs=0x8000000000000000LL;
     int64s PTSb; //In 1/Frequency_b if sub, in 1/(Frequency_c*Frequency_b) if in a container
