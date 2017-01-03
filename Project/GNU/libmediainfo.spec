@@ -129,7 +129,6 @@ for development.
 
 %prep
 %setup -q -n MediaInfoLib
-mv           History_DLL.txt History.txt
 sed -i 's/.$//' *.txt Source/Example/*
 
 find . -type f -exec chmod 644 {} ';'
@@ -183,7 +182,6 @@ rm -f %{buildroot}%{_libdir}/%{name_without_0_ending}.la
 
 %files
 %defattr(-,root,root,-)
-%doc History.txt ReadMe.txt
 %if 0%{?fedora} || 0%{?centos_version} >= 700 || 0%{?rhel_version} >= 700
 %license License.html
 %else
@@ -193,7 +191,7 @@ rm -f %{buildroot}%{_libdir}/%{name_without_0_ending}.la
 
 %files     -n %{name_without_0_ending}-doc
 %defattr(-,root,root,-)
-%doc Changes.txt Documentation.html Doc Source/Example
+%doc Source/Example
 
 %files     -n %{name_without_0_ending}-devel
 %defattr(-,root,root,-)

@@ -33,10 +33,6 @@ override_dh_auto_clean:
 	rm -rf Doc/
 	(cd Source/Doc && find -maxdepth 1 -name '*.html' -print0) | xargs -0 rm -f
 
-override_dh_installchangelogs:
-	dh_installchangelogs Changes.txt
-	fromdos debian/*/usr/share/doc/*/changelog
-
 override_dh_installexamples:
 	dh_installexamples
 	if dh_listpackages | grep -q libmediainfo-doc; then					\
