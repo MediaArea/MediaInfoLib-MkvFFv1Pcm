@@ -441,10 +441,13 @@ void File__Analyze::Open_Buffer_Init (File__Analyze* Sub, int64u File_Size_)
     Sub->Open_Buffer_Init(File_Size_);
 }
 
-void File__Analyze::Open_Buffer_OutOfBand (File__Analyze* Sub, const int8u* ToAdd, size_t ToAdd_Size)
+void File__Analyze::Open_Buffer_OutOfBand (File__Analyze* Sub, size_t Size)
 {
     if (Sub==NULL)
+    {
+        Skip_XX(Size,                                           "Unknown");
         return;
+    }
 
     //Sub
     if (Sub->File_GoTo!=(int64u)-1)
@@ -465,7 +468,8 @@ void File__Analyze::Open_Buffer_OutOfBand (File__Analyze* Sub, const int8u* ToAd
         bool Demux_EventWasSent_Save=Config->Demux_EventWasSent;
         Config->Demux_EventWasSent=false;
     #endif //MEDIAINFO_DEMUX
-    Sub->Open_Buffer_OutOfBand(ToAdd, ToAdd_Size);
+    Sub->Open_Buffer_OutOfBand(Buffer+Buffer_Offset+(size_t)Element_Offset, Size);
+    Element_Offset+=Size;
     #if MEDIAINFO_DEMUX
         if (Demux_EventWasSent_Save)
             Config->Demux_EventWasSent=true;
@@ -1212,16 +1216,7 @@ void File__Analyze::Open_Buffer_Finalize (bool NoBufferModification)
 
     #if MEDIAINFO_TRACE
     if (Details && Details->empty())
-    {
-        Element[0].TraceNode.Print(Config_Trace_Format, *Details);
-        if (Config_LineSeparator != __T("\n"))
-        {
-            Ztring Temp;
-            Temp.From_UTF8(*Details);
-            Temp.FindAndReplace(__T("\n"), Config_LineSeparator, 0, Ztring_Recursive);
-            *Details=Temp.To_UTF8();
-        }
-    }
+        Element[0].TraceNode.Print(Config_Trace_Format, *Details, Config_LineSeparator.To_UTF8(), File_Size);
     #endif //MEDIAINFO_TRACE
 
     #if MEDIAINFO_EVENTS
@@ -2550,6 +2545,26 @@ void File__Analyze::Element_Parser(const char* Parser)
         return;
 
     Element[Element_Level].TraceNode.Infos.push_back(new element_details::Element_Node_Info(Parser, "Parser"));
+}
+#endif //MEDIAINFO_TRACE
+
+//---------------------------------------------------------------------------
+#if MEDIAINFO_TRACE
+void File__Analyze::Element_Error(const char* Message)
+{
+    //Needed?
+    if (Config_Trace_Level<=0.7)
+        return;
+
+    Element[Element_Level].TraceNode.Infos.push_back(new element_details::Element_Node_Info(Message, "Error"));
+}
+#endif //MEDIAINFO_TRACE
+
+//---------------------------------------------------------------------------
+#if MEDIAINFO_TRACE
+void File__Analyze::Param_Error(const char* Message)
+{
+    Param_Info(Message, "Error");
 }
 #endif //MEDIAINFO_TRACE
 

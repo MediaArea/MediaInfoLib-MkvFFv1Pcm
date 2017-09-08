@@ -259,7 +259,7 @@ void element_details::Element_Node_Data::operator=(float80 v)
 bool element_details::Element_Node_Data::operator==(const std::string& v)
 {
     if (type == ELEMENT_NODE_CHAR8)
-        return v == string(val.Chars, Option);
+        return v == std::string(val.Chars, Option);
     if (type == ELEMENT_NODE_STR)
         return v == val.Str;
 
@@ -347,62 +347,12 @@ static inline size_t Xml_Name_Escape_MustEscape(const std::string &Name)
 }
 
 //---------------------------------------------------------------------------
-static void Xml_Name_Escape(const char* Name, size_t Size, std::string& ToReturn, size_t Pos)
-{
-    ToReturn = Name;
-
-    // Case first char is a digit
-    if (Pos == 0 && Name[0] >= '0' && Name[0] <= '9')
-        ToReturn.insert(0, 1, '_');
-
-    while (Pos < Size)
-    {
-        const char C = ToReturn[Pos];
-
-        switch (C)
-        {
-            case ' ':
-            case '/':
-            case '(':
-            case ')':
-            case '*':
-            case ',':
-            case ':':
-            case '@':
-                ToReturn[Pos] = '_';
-                Pos++;
-                break;
-            default:
-                if (!(C >= 'A' && C <= 'Z')
-                 && !(C >= 'a' && C <= 'z')
-                 && !(C >= '0' && C <= '9')
-                 && !(C == '_'))
-                {
-                    ToReturn.erase(Pos, 1);
-                    Size--;
-                }
-                else
-                    Pos++;
-        }
-    }
-
-    if (ToReturn.empty())
-        ToReturn = "Unknown";
-}
-
-//---------------------------------------------------------------------------
-static void Xml_Name_Escape(const std::string &Name, std::string& ToReturn, size_t Pos)
-{
-    Xml_Name_Escape(Name.c_str(), Name.size(), ToReturn, Pos);
-}
-
-//---------------------------------------------------------------------------
 static size_t Xml_Content_Escape_MustEscape(const char* Content, size_t Size)
 {
     // Cheking all chars
     for (size_t Pos = 0; Pos < Size; Pos++)
     {
-        const char C = Content[Pos];
+        const unsigned char C = Content[Pos];
         switch (C)
         {
             case '\"':
@@ -429,7 +379,13 @@ static inline size_t Xml_Content_Escape_MustEscape(const std::string &Content)
 //---------------------------------------------------------------------------
 static void Xml_Content_Escape(const char* Content, size_t Size, std::string& ToReturn, size_t Pos)
 {
-    ToReturn = Content;
+    if (Size)
+        ToReturn = std::string(Content, Size);
+    else
+    {
+        ToReturn.clear();
+        return;
+    }
 
     for (; Pos<Size; Pos++)
     {
@@ -466,8 +422,26 @@ static void Xml_Content_Escape(const char* Content, size_t Size, std::string& To
                 Pos += 3;
                 Size += 3;
                 break;
-            case '\r':
             case '\n':
+                ToReturn[Pos] = '&';
+                ToReturn.insert(Pos + 1, "#xA;");
+                Pos += 4;
+                Size += 4;
+                break;
+            case '\r': //Doing like XML rule "(...) translating both the two-character sequence #xD #xA and any #xD that is not followed by #xA to a single #xA character".
+                ToReturn[Pos] = '&';
+                if (Pos + 1 < Size && ToReturn[Pos + 1] == '\n')
+                {
+                    Pos++;
+                    ToReturn[Pos] = '#';
+                    ToReturn.insert(Pos + 1, "xA;");
+                    Pos += 3;
+                    Size += 3;
+                    break;
+                }
+                ToReturn.insert(Pos + 1, "#xA;");
+                Pos += 4;
+                Size += 4;
                 break;
             default:
                 if (C<0x20)
@@ -507,7 +481,15 @@ std::ostream& operator<<(std::ostream& os, const element_details::Element_Node_D
     {
       case element_details::Element_Node_Data::ELEMENT_NODE_CHAR8:
       {
+          if (v.format_out == element_details::Element_Node_Data::Format_Tree)
+          {
+              for (int8u i = 0; i < v.Option; ++i)
+                  os.rdbuf()->sputc(v.val.Chars[i]?v.val.Chars[i]:' '); //Text output does not like NULL chars, replacing it by space
+              break;
+          }
+
           size_t MustEscape = Xml_Content_Escape_MustEscape(v.val.Chars, v.Option);
+
           if (MustEscape != (size_t)-1)
           {
               std::string str;
@@ -523,7 +505,27 @@ std::ostream& operator<<(std::ostream& os, const element_details::Element_Node_D
       }
       case element_details::Element_Node_Data::ELEMENT_NODE_STR:
       {
-          size_t MustEscape = Xml_Content_Escape_MustEscape(v.val.Chars, v.Option);
+          if (v.format_out == element_details::Element_Node_Data::Format_Tree)
+          {
+              const char* a=v.val.Str;
+              for (;;)
+              {
+                  const char* b=strchr(a, '\n');
+                  if (!b)
+                      break;
+                  std::streamsize c=b-a;
+                  if (c && a[c-1]=='\r')
+                      c--;
+                  os.write(a, c);
+                  a=b+1;
+                  if (*a) // If it is not the last character
+                      os << " / ";
+              }
+              os << a;
+              break;
+          }
+
+          size_t MustEscape = Xml_Content_Escape_MustEscape(v.val.Str);
           if (MustEscape != (size_t)-1)
           {
               std::string str;
@@ -677,7 +679,7 @@ void element_details::Element_Node::Init()
 }
 
 //---------------------------------------------------------------------------
-int element_details::Element_Node::Print_Micro_Xml(std::ostringstream& ss, size_t level)
+int element_details::Element_Node::Print_Micro_Xml(print_struc& s)
 {
     if (NoShow)
         return 0;
@@ -686,9 +688,9 @@ int element_details::Element_Node::Print_Micro_Xml(std::ostringstream& ss, size_
         goto print_children;
 
     if (Value.empty())
-        ss << "<b";
+        s.ss << "<b";
     else
-        ss << "<d";
+        s.ss << "<d";
 
     {
     size_t MustEscape = Xml_Content_Escape_MustEscape(Name);
@@ -696,10 +698,10 @@ int element_details::Element_Node::Print_Micro_Xml(std::ostringstream& ss, size_
     {
         std::string str;
         Xml_Content_Escape(Name, str, MustEscape);
-        ss << " o=\"" << Pos << "\" n=\"" << str << "\"";
+        s.ss << " o=\"" << Pos << "\" n=\"" << str << "\"";
     }
     else
-        ss << " o=\"" << Pos << "\" n=\"" << Name << "\"";
+        s.ss << " o=\"" << Pos << "\" n=\"" << Name << "\"";
     }
 
     for (size_t i = 0, info_nb = 0; i < Infos.size(); ++i)
@@ -709,38 +711,45 @@ int element_details::Element_Node::Print_Micro_Xml(std::ostringstream& ss, size_
         if (Info->Measure == "Parser")
         {
             if (!(Info->data == string()))
-                ss << " parser=\"" << Info->data << "\"";
+                s.ss << " parser=\"" << Info->data << "\"";
             continue;
         }
-        else
-            info_nb++;
+        if (Info->Measure == "Error")
+        {
+            if (!(Info->data == string()))
+                s.ss << " e=\"" << Info->data << "\"";
+            continue;
+        }
 
-        ss << " i";
+        info_nb++;
+        s.ss << " i";
         if (info_nb > 1)
-            ss << info_nb;
-        ss << "=\"" << Infos[i] << "\"";
+            s.ss << info_nb;
+        s.ss << "=\"" << Infos[i] << "\"";
     }
 
     if (!Value.empty())
     {
         Value.Set_Output_Format(Element_Node_Data::Format_Xml);
-        ss << ">" << Value << "</d>";
+        s.ss << ">" << Value << "</d>";
     }
     else
-        ss << " s=\"" << Size << "\">";
+        s.ss << " s=\"" << Size << "\">";
 
-    level += 4;
+    s.level += 4;
 print_children:
     for (size_t i = 0; i < Children.size(); ++i)
-        Children[i]->Print_Micro_Xml(ss, level);
+        Children[i]->Print_Micro_Xml(s);
 
     if (!IsCat && !Name_Is_Empty())
     {
+        s.level -= 4;
+        
         //end tag
         if (Value.empty())
         {
             //block
-            ss << "</b>";
+            s.ss << "</b>";
         }
     }
 
@@ -748,24 +757,23 @@ print_children:
 }
 
 //---------------------------------------------------------------------------
-int element_details::Element_Node::Print_Xml(std::ostringstream& ss, size_t level)
+int element_details::Element_Node::Print_Xml(print_struc& s)
 {
     if (NoShow)
         return 0;
 
     std::string spaces;
-    bool Modified = false;
 
     if (IsCat || Name_Is_Empty())
         goto print_children;
 
-    spaces.resize(level, ' ');
-    ss << spaces;
+    spaces.resize(s.level, ' ');
+    s.ss << spaces;
 
     if (Value.empty())
-        ss << "<block";
+        s.ss << "<block";
     else
-        ss << "<data";
+        s.ss << "<data";
 
     {
     size_t MustEscape = Xml_Content_Escape_MustEscape(Name);
@@ -773,10 +781,10 @@ int element_details::Element_Node::Print_Xml(std::ostringstream& ss, size_t leve
     {
         std::string str;
         Xml_Content_Escape(Name, str, MustEscape);
-        ss << " offset=\"" << Pos << "\" name=\"" << str << "\"";
+        s.ss << " offset=\"" << Pos << "\" name=\"" << str << "\"";
     }
     else
-        ss << " offset=\"" << Pos << "\" name=\"" << Name << "\"";
+        s.ss << " offset=\"" << Pos << "\" name=\"" << Name << "\"";
     }
 
     for (size_t i = 0, info_nb = 0; i < Infos.size(); ++i)
@@ -786,40 +794,47 @@ int element_details::Element_Node::Print_Xml(std::ostringstream& ss, size_t leve
         if (Info->Measure == "Parser")
         {
             if (!(Info->data == string()))
-                ss << " parser=\"" << Info->data << "\"";
+                s.ss << " parser=\"" << Info->data << "\"";
             continue;
         }
-        else
-            info_nb++;
+        if (Info->Measure == "Error")
+        {
+            if (!(Info->data == string()))
+                s.ss << " error=\"" << Info->data << "\"";
+            continue;
+        }
 
-        ss << " info";
+        info_nb++;
+        s.ss << " info";
         if (info_nb > 1)
-            ss << info_nb;
-        ss << "=\"" << Infos[i] << "\"";
+            s.ss << info_nb;
+        s.ss << "=\"" << Info << "\"";
     }
 
     if (!Value.empty())
     {
         Value.Set_Output_Format(Element_Node_Data::Format_Xml);
-        ss << ">" << Value << "</data>";
+        s.ss << ">" << Value << "</data>";
     }
     else
-        ss << " size=\"" << Size << "\">";
+        s.ss << " size=\"" << Size << "\">";
 
-    ss << "\n";
+    s.ss << s.eol;
 
-    level += 4;
+    s.level += 4;
 print_children:
     for (size_t i = 0; i < Children.size(); ++i)
-        Children[i]->Print_Xml(ss, level);
+        Children[i]->Print_Xml(s);
 
     if (!IsCat && !Name_Is_Empty())
     {
+        s.level -= 4;
+
         //end tag
         if (Value.empty())
         {
             //block
-            ss << spaces << "</block>" << "\n";
+            s.ss << spaces << "</block>" << s.eol;
         }
     }
 
@@ -827,13 +842,13 @@ print_children:
 }
 
 //---------------------------------------------------------------------------
-int element_details::Element_Node::Print_Tree_Cat(std::ostringstream& ss, size_t level)
+int element_details::Element_Node::Print_Tree_Cat(print_struc& s)
 {
     std::ostringstream offset;
-    offset << std::setfill('0') << std::setw(8) << std::hex << std::uppercase << Pos << std::nouppercase << std::dec;
+    offset << std::setfill('0') << std::setw(s.offset_size) << std::hex << std::uppercase << Pos << std::nouppercase << std::dec;
 
     std::string spaces;
-    spaces.resize(level, ' ');
+    spaces.resize(s.level, ' ');
 
     std::string ToShow;
     ToShow += "---   ";
@@ -843,14 +858,14 @@ int element_details::Element_Node::Print_Tree_Cat(std::ostringstream& ss, size_t
     std::string minuses;
     minuses.resize(ToShow.size(), '-');
 
-    ss << offset.str() << spaces << minuses << "\n";
-    ss << offset.str() << spaces << ToShow << "\n";
-    ss << offset.str() << spaces << minuses << "\n";
+    s.ss << offset.str() << spaces << minuses << s.eol;
+    s.ss << offset.str() << spaces << ToShow << s.eol;
+    s.ss << offset.str() << spaces << minuses << s.eol;
     return 0;
 }
 
 //---------------------------------------------------------------------------
-int element_details::Element_Node::Print_Tree(std::ostringstream& ss, size_t level)
+int element_details::Element_Node::Print_Tree(print_struc& s)
 {
     std::string spaces;
 
@@ -858,25 +873,25 @@ int element_details::Element_Node::Print_Tree(std::ostringstream& ss, size_t lev
         return 0;
 
     if (IsCat)
-        return Print_Tree_Cat(ss, level);
+        return Print_Tree_Cat(s);
     else if (Name_Is_Empty())
         goto print_children;
 
-    ss << std::setfill('0') << std::setw(8) << std::hex << std::uppercase << Pos << std::nouppercase << std::dec;
-    spaces.resize(level, ' ');
-    ss << spaces;
-    ss << Name;
+    s.ss << std::setfill('0') << std::setw(s.offset_size) << std::hex << std::uppercase << Pos << std::nouppercase << std::dec;
+    spaces.resize(s.level, ' ');
+    s.ss << spaces;
+    s.ss << Name;
 
     spaces.clear();
 
 #define NB_SPACES 40
     if (!Value.empty())
     {
-        ss << ":";
-        int nb_free = NB_SPACES - level - (Name_Is_Empty() ? 0 : Name.length()); // 40 - len(Name) - len(spaces)
+        s.ss << ":";
+        int nb_free = NB_SPACES - s.level - (Name_Is_Empty() ? 0 : Name.length()); // 40 - len(Name) - len(spaces)
         spaces.resize(nb_free > 0 ? nb_free : 1, ' ');
         Value.Set_Output_Format(Element_Node_Data::Format_Tree);
-        ss << spaces << Value;
+        s.ss << spaces << Value;
         spaces.clear();
     }
 #undef NB_SPACES
@@ -885,46 +900,68 @@ int element_details::Element_Node::Print_Tree(std::ostringstream& ss, size_t lev
     {
         Element_Node_Info* Info = Infos[i];
 
+        if (!Info)
+            continue;
+
         if (Info->Measure == "Parser")
         {
             if (!(Info->data == string()))
-                ss << " - Parser=" << Info->data;
+                s.ss << " - Parser=" << Info->data;
+            continue;
+        }
+        if (Info->Measure == "Error")
+        {
+            if (!(Info->data == string()))
+                s.ss << " - Error=" << Info->data;
             continue;
         }
 
-        ss << " - " << Info;
+        Info->data.Set_Output_Format(Element_Node_Data::Format_Tree);
+        s.ss << " - " << Info;
     }
 
     if (Value.empty())
-        ss << " (" << Size << " bytes)";
+        s.ss << " (" << Size << " bytes)";
 
-    ss << "\n";
+    s.ss << s.eol;
 
-    level += 1;
+    s.level++;
 print_children:
     for (size_t i = 0; i < Children.size(); ++i)
-        Children[i]->Print_Tree(ss, level);
+        Children[i]->Print_Tree(s);
+
+    if (!Name_Is_Empty())
+        s.level--;
 
     return 0;
 }
 
 //---------------------------------------------------------------------------
-int element_details::Element_Node::Print(MediaInfo_Config::trace_Format Format, std::string& Str)
+int element_details::Element_Node::Print(MediaInfo_Config::trace_Format Format, std::string& Str, const string& eol, int64u File_Size)
 {
+    //Computing how many characters are needed for displaying maximum file size
+    size_t offset_size = sizeof(File_Size)*8-1;
+    while (offset_size>1 && (((int64u)1) << offset_size) - 1 >= File_Size)
+        offset_size--;
+    offset_size++;
+    offset_size = (offset_size / 4) + ((offset_size % 4) ? 1 : 0); //4 bits per offset char
+
     std::ostringstream ss;
     int ret = -1;
+    print_struc s(ss, eol, offset_size);
     switch (Format)
     {
         case MediaInfo_Config::Trace_Format_Tree:
-            ret = Print_Tree(ss, 1);
-            break;
+            s.level = 1;
+            ret = Print_Tree(s);
+        break;
         case MediaInfo_Config::Trace_Format_CSV:
             break;
         case MediaInfo_Config::Trace_Format_XML:
-            ret = Print_Xml(ss, 0);
+            ret = Print_Xml(s);
             break;
         case MediaInfo_Config::Trace_Format_MICRO_XML:
-            ret = Print_Micro_Xml(ss, 0);
+            ret = Print_Micro_Xml(s);
             break;
         default:
             break;

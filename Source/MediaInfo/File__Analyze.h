@@ -26,6 +26,16 @@ namespace MediaInfoLib
 
 class MediaInfo_Internal;
 
+template <class T> inline Ztring Get_Hex_ID(const T& Value)
+{
+    Ztring ID_String;
+    ID_String.From_Number(Value); 
+    ID_String += __T(" (0x"); 
+    ID_String += Ztring::ToZtring(Value, 16); 
+    ID_String += __T(")");
+    return ID_String;
+}
+
 #if !MEDIAINFO_TRACE
     #include "MediaInfo/File__Analyze_MinimizeSize.h"
 #else
@@ -52,8 +62,8 @@ public :
     void    Open_Buffer_Init        (File__Analyze* Sub);
     void    Open_Buffer_Init        (File__Analyze* Sub, int64u File_Size);
     void    Open_Buffer_OutOfBand   (                    const int8u* Buffer, size_t Buffer_Size) {File__Analyze::Buffer=Buffer; File__Analyze::Buffer_Size=Buffer_Size; Element_Offset=0; Element_Size=Buffer_Size; Read_Buffer_OutOfBand(); File__Analyze::Buffer=NULL; File__Analyze::Buffer_Size=0; Element_Offset=0; Element_Size=0;}
-    void    Open_Buffer_OutOfBand   (File__Analyze* Sub, const int8u* Buffer, size_t Buffer_Size);
-    void    Open_Buffer_OutOfBand   (File__Analyze* Sub) {if (Element_Offset<=Element_Size) Open_Buffer_OutOfBand(Sub, Buffer+Buffer_Offset+(size_t)Element_Offset, (size_t)(Element_Size-Element_Offset)); Element_Offset=Element_Size;}
+    void    Open_Buffer_OutOfBand   (File__Analyze* Sub                     , size_t Buffer_Size);
+    void    Open_Buffer_OutOfBand   (File__Analyze* Sub) {Open_Buffer_OutOfBand(Sub, Element_Size-Element_Offset);};
     void    Open_Buffer_Continue    (                    const int8u* Buffer, size_t Buffer_Size);
     void    Open_Buffer_Continue    (File__Analyze* Sub, const int8u* Buffer, size_t Buffer_Size, bool IsNewPacket=true, float64 Ratio=1.0);
     void    Open_Buffer_Continue    (File__Analyze* Sub, size_t Buffer_Size) {if (Element_Offset+Buffer_Size<=Element_Size) Open_Buffer_Continue(Sub, Buffer+Buffer_Offset+(size_t)Element_Offset, Buffer_Size); Element_Offset+=Buffer_Size;}
@@ -355,7 +365,7 @@ protected :
         if (Config_Trace_Level<=0.7)
             return;
 
-        if (Parameter && std::string(Parameter) == "NOK")
+        if ((Parameter && std::string(Parameter) == "NOK") || (Measure && std::string(Measure) == "Error"))
             Element[Element_Level].TraceNode.HasError = true;
 
         Element[Element_Level].TraceNode.Infos.push_back(new element_details::Element_Node_Info(Parameter, Measure, AfterComma));
@@ -372,6 +382,8 @@ protected :
     inline void Element_Info_From_Milliseconds (int64u Parameter)                  {if (Config_Trace_Level<1) return; Element_Info(Ztring().Duration_From_Milliseconds(Parameter));}
 
     void Element_Parser (const char* Name);
+    void Element_Error (const char* Name);
+    void Param_Error (const char* Name);
 
     //Elements - End
     inline void Element_End () {Element_End_Common_Flush();}
@@ -1291,7 +1303,7 @@ public: //TO CHANGE
     BitStream*      BT;             //For conversion from bytes to bitstream
 public : //TO CHANGE
     int64u Header_Size;             //Size of the header of the current element
-    Ztring Details_Get(size_t Level=0) { std::string str; if (Element[Level].TraceNode.Print(Config_Trace_Format, str) < 0) return Ztring(); return Ztring().From_UTF8(str);}
+    Ztring Details_Get(size_t Level=0) { std::string str; if (Element[Level].TraceNode.Print(Config_Trace_Format, str, Config_LineSeparator.To_UTF8(), File_Size) < 0) return Ztring(); return Ztring().From_UTF8(str);}
     void   Details_Clear();
 protected :
     bool Trace_DoNotSave;
